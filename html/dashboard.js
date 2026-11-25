@@ -25,11 +25,7 @@ function deltaText(v, unit) {
   return `${sign}${fmt(Math.abs(v), Number.isInteger(v) ? 0 : 1)}${unit ? " " + unit : ""}`;
 }
 function deltaGood(d) { return d.good === "down" ? d.delta <= 0 : d.delta >= 0; }
-function cellStatus(ind, value) {
-  const t = targetNum(ind.target);
-  if (ind.dir === "high") return value >= t ? "ok" : value >= t * 0.94 ? "warn" : "crit";
-  return value <= t ? "ok" : value <= t * 1.35 ? "warn" : "crit";
-}
+function cellStatus(ind, value) { return statusFromTarget(ind.target, value); }
 
 /* ================= ikon (Lucide, inline) ================= */
 const svg = (d, extra = "") => `<svg ${extra} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
@@ -135,7 +131,9 @@ function kpiFor(k) {
   const delta = roundLike(rnd("d" + k) * Math.max(Math.abs(d.delta), Number.isInteger(d.value) ? 1 : 0.2), d.delta);
   return { ...d, value, delta, status: statusFromBand(value, d.band) };
 }
-const inmFor = () => inm.map(i => { const value = pv("inm" + i.k, i.value, 0.03); return isMonth() ? i : { ...i, value, status: statusFromTarget(i.target, value) }; });
+/* status INM selalu dihitung dari target (termasuk data bulanan dan jawaban asisten) */
+inm.forEach(i => { i.status = statusFromTarget(i.target, i.value); });
+const inmFor = () => inm.map(i => { const value = isMonth() ? i.value : pv("inm" + i.k, i.value, 0.03); return { ...i, value, status: statusFromTarget(i.target, value) }; });
 const unitsFor = () => units.map(u => isMonth() ? u : { ...u, bor: pv("bor" + u.name, u.bor, 0.05), alos: pv("alos" + u.name, u.alos, 0.06), toi: pv("toi" + u.name, u.toi, 0.08), bto: pv("bto" + u.name, u.bto, 0.04) });
 
 const TABS = [
@@ -445,10 +443,10 @@ const domainRisk = [
 ];
 function itemList(rows) {
   return `<div class="flex flex-col divide-y divide-border">${rows.map(r => `
-    <${r.go ? `button type="button" data-go="${r.go}"` : r.jump ? `button type="button" data-docjump="${r.jump}"` : "div"} class="item rounded-none px-1 text-left ${r.go || r.jump ? "transition-colors hover:bg-muted/50" : ""}" data-size="sm">
+    <${r.go ? `button type="button" data-go="${r.go}"` : r.jump ? `button type="button" data-docjump="${r.jump}"` : r.k ? `button type="button" data-k="${esc(r.k)}"` : "div"} class="item rounded-none px-1 text-left ${r.go || r.jump || r.k ? "transition-colors hover:bg-muted/50" : ""}" data-size="sm">
       <section class="min-w-0 basis-48"><h3 class="text-balance">${esc(r.title)}</h3>${r.desc ? `<p class="line-clamp-none">${esc(r.desc)}</p>` : ""}</section>
       <aside>${r.badge}</aside>
-    </${r.go || r.jump ? "button" : "div"}>`).join("")}</div>`;
+    </${r.go || r.jump || r.k ? "button" : "div"}>`).join("")}</div>`;
 }
 function domainRiskCard() {
   const allowed = new Set(allowedTabs().map(t => t.id));
@@ -471,7 +469,9 @@ function priorityTable(rows) {
 
 function statusTable(rows, { nameHead = "Indikator", extra } = {}) {
   const head = [{ t:nameHead, wrap:true }, ...(extra ? extra.head : []), { t:"Target", num:true }, { t:"Capai", num:true }, { t:"Status" }];
-  return table(head, rows.map(r => ({ cells: [esc(r.n), ...(extra ? extra.cells(r) : []), esc(r.t), esc(r.v), badge(r.st, r.label)] })));
+  const name = r => r.k ? `<button type="button" class="btn h-auto whitespace-normal px-0 text-left" data-variant="link" data-k="${esc(r.k)}">${esc(r.n)}</button>` : esc(r.n);
+  return `<div class="hidden sm:block">${table(head, rows.map(r => ({ cells: [name(r), ...(extra ? extra.cells(r) : []), esc(r.t), esc(r.v), badge(r.st, r.label)] })))}</div>
+    <div class="sm:hidden">${itemList(rows.map(r => ({ title: r.n, desc: `Capai ${r.v} · target ${r.t}`, badge: badge(r.st, r.label), k: r.k })))}</div>`;
 }
 
 /* ================= halaman ================= */
@@ -491,33 +491,95 @@ function renderRingkasan() {
 }
 
 function heatTable() {
-  const rows = state.unit === "all" ? safetyMatrix : safetyMatrix.filter(r => r.unit === state.unit);
+  const rows = state.unit === "all" ? safetyMatrix : safetyMatrix.filter(r => r.unit === state.unit || state.unit.startsWith(r.unit + " "));
   return table(
     [{ t:"Unit" }, ...safetyIndicators.map(i => ({ t:`${esc(i.name)}<div class="text-xs font-normal text-muted-foreground">${esc(i.target)}</div>` }))],
     rows.map(r => ({ cells: [`<span class="font-medium">${esc(r.unit)}</span>`, ...safetyIndicators.map(i => {
       const v = pv("sm" + r.unit + i.key, r[i.key], 0.03), st = cellStatus(i, v);
-      return `<span class="badge tabular-nums ${STATUS[st].cls || ""}" data-variant="${STATUS[st].variant}" title="${esc(i.name)} ${fmt(v, 1)}${i.unit} · target ${esc(i.target)} · ${statusLabel(st)}">${icon(STATUS[st].icon)}${fmtAuto(v)}</span>`;
-    })] })));
+      return `<span class="badge tabular-nums ${STATUS[st].cls || ""}" data-variant="${STATUS[st].variant}" title="${esc(i.name)} ${fmt(v, 1)}${i.unit} · target ${esc(i.target)} · ${statusLabel(st)}">${icon(STATUS[st].icon)}${fmtAuto(v)}<span class="sr-only"> ${esc(i.name)}, ${statusLabel(st)}</span></span>`;
+    })] })), `${esc(state.unit)} tidak diaudit untuk indikator keselamatan ini.`);
+}
+
+/* pemilik tindak lanjut per INM (mock) — [pemilik, langkah, kartu bukti] */
+const inmOwner = {
+  "Kepatuhan alur klinis": ["Komite Mutu", "audit 30 rekam medis, tenggat 7 Des", "kartu-inm"],
+  "Tanggap SC emergensi": ["Kepala OK & SMF Obsgin", "tinjau alur konsul anestesi", "kartu-inm"],
+  "Pencegahan risiko jatuh": ["Kepala ruang HCU, RI A, RI C, IGD", "asesmen ulang risiko jatuh tiap shift", "kartu-matriks"],
+  "Penundaan operasi elektif": ["Kepala OK", "telaah jadwal & kesiapan pra-operasi", "kartu-inm"],
+  "Kebersihan tangan": ["IPCN", "audit per shift di IGD & Rawat Inap C", "kartu-matriks"],
+  "Identifikasi pasien": ["Kepala ruang", "audit gelang identitas di IGD & Rawat Inap C", "kartu-matriks"],
+  "Pelaporan hasil kritis lab": ["Kepala Instalasi Laboratorium", "telaah pelaporan hasil kritis ≤30 menit", "kartu-inm"]
+};
+const SEV = { crit: 0, warn: 1, ok: 2, na: 3 };
+function mutuFor() {
+  const rows = inmFor().map((i, n) => ({ ...i, key: "INM" + (n + 1), shown: fmtAuto(i.value) + (String(i.target).includes("%") ? "%" : "") }));
+  const crit = rows.filter(i => i.status === "crit"), warn = rows.filter(i => i.status === "warn");
+  const readm = pv("readm", qualityTrend.readmisi[qualityTrend.readmisi.length - 1], 0.05);
+  return { rows, crit, warn, ok: rows.length - crit.length - warn.length,
+    status: crit.length ? "crit" : warn.length ? "warn" : "ok",
+    readm, readmSt: statusFromTarget("<" + qualityTrend.readmisiTarget, readm) };
+}
+function reviewStages() {
+  /* mulai dari kematian ≥48 jam: pasien keluar hanya penyebut, bukan tahap */
+  const all = mortalityFunnel.stages.reduce((acc, x, i) => { const n = Math.min(pc(x.n), i ? acc[i - 1].n : Infinity); acc.push({ ...x, n }); return acc; }, []);
+  const s = all.slice(1);
+  let gap = 1;
+  s.forEach((x, i) => { if (i && s[i - 1].n - x.n > s[gap - 1].n - s[gap].n) gap = i; });
+  return { discharges: all[0].n, s, gap,
+    html: `<ol class="flex flex-col gap-3">${s.map((x, i) => `
+      <li class="flex flex-col gap-1">
+        <span class="flex justify-between gap-2 text-sm"><span class="${i === gap ? "font-medium" : "text-muted-foreground"}">${i + 1}. ${esc(x.label)}</span>
+          <span class="tabular-nums ${i === gap ? "font-medium" : "text-muted-foreground"}">${fmt(x.n)}${i ? ` · ${fmt(x.n / s[i - 1].n * 100)}%` : ""}</span></span>
+        <div class="progress h-1.5" role="progressbar" aria-valuenow="${x.n}" aria-valuemin="0" aria-valuemax="${s[0].n}" aria-label="${esc(x.label)}: ${fmt(x.n)}"><span style="width:${Math.round(x.n / s[0].n * 100)}%"></span></div>
+      </li>`).join("")}</ol>` };
 }
 
 function renderMutu() {
-  const inmRows = inmFor().map(i => ({ n: i.k, t: i.target, v: fmtAuto(i.value) + (String(i.target).includes("%") ? "%" : ""), st: i.status }));
+  const m = mutuFor(), gdr = kpiFor("GDR"), ndr = kpiFor("NDR");
+  /* urut: status terberat dulu, lalu yang paling jauh dari target */
+  const gapRatio = i => { const t = targetNum(i.target) || 1; return /^[<≤]/.test(String(i.target).trim()) ? t / i.value : i.value / t; };
+  const sorted = m.rows.slice().sort((a, b) => SEV[a.status] - SEV[b.status] || gapRatio(a) - gapRatio(b));
+  const unitNote = state.unit === "all" ? "" : " · INM dan tren dihitung di tingkat RS; matriks difilter per unit";
+  const actions = [...sorted.filter(i => i.status === "crit"), ...sorted.filter(i => i.status === "warn").slice(0, 3)].filter(i => inmOwner[i.k]).map(i => {
+    const [owner, step, jump] = inmOwner[i.k];
+    return { title: `${i.k} ${i.shown} (target ${i.target})`, desc: `${owner} · ${step}`, badge: badge(i.status === "crit" ? "crit" : "warn", i.status === "crit" ? "Kritis" : "Pantau"), jump };
+  });
+  if (m.readmSt !== "ok") actions.push({ title: `Readmisi 30 hari ${fmt(m.readm, 1)}% (target <${fmt(qualityTrend.readmisiTarget, 0)}%)`, desc: "Komite Medik · telaah pasien dirawat ulang <30 hari", badge: badge(m.readmSt === "crit" ? "crit" : "warn", m.readmSt === "crit" ? "Kritis" : "Pantau"), jump: "kartu-readmisi" });
+  const verdict = `<b class="tabular-nums">${m.crit.length} dari ${m.rows.length}</b> INM di luar target${m.crit.length ? `: ${m.crit.map(i => `${esc(i.k)} ${i.shown}`).join(", ")}` : ""}. ${m.warn.length} INM waspada.${m.readmSt !== "ok" ? ` Readmisi 30 hari ${fmt(m.readm, 1)}% di atas target <${fmt(qualityTrend.readmisiTarget, 0)}%.` : ""}`;
+  const st = reviewStages();
   return `
-  ${sectionHead("Mutu & keselamatan", "13 INM · matriks unit × indikator", scopeText())}
-  ${card({ title: "Matriks kepatuhan per unit", sub: state.unit === "all" ? "7 unit · geser tabel ke samping di layar kecil" : esc(state.unit),
-    body: `<div class="flex flex-col gap-4">${heatTable()}${legend([["ok", "Memenuhi target"], ["warn", "Dalam 6% dari target"], ["crit", "Perlu tindakan"]])}</div>`,
-    foot: "IDO dalam % · indikator lain dalam %" })}
-  ${grid("md:grid-cols-2 2xl:grid-cols-3", `
-    ${card({ title: "GDR", sub: "‰ · ambang ≤45", body: trendChart({ series: [{ name: "GDR", data: qualityTrend.gdr }], labels: qualityTrend.labels, band: [0, 45], unit: "‰", height: 220 }) })}
-    ${card({ title: "NDR", sub: "‰ · ambang ≤25", body: trendChart({ series: [{ name: "NDR", data: qualityTrend.ndr }], labels: qualityTrend.labels, band: [0, 25], unit: "‰", height: 220 }) })}
-    ${card({ title: "Readmisi 30 hari", sub: "% · target <5", body: trendChart({ series: [{ name: "Readmisi", data: qualityTrend.readmisi }], labels: qualityTrend.labels, target: qualityTrend.readmisiTarget, unit: "%", height: 220 }) })}`)}
-  ${card({ title: "Status 13 Indikator Nasional Mutu", sub: "Permenkes 30/2022 · wajib", body: statusTable(inmRows),
-    foot: "Target efektif per indikator mengikuti Lampiran Permenkes; angka target yang belum terverifikasi ditandai di dokumen riset." })}
+  ${sectionHead("Mutu & keselamatan", `${P().range} · 13 INM Permenkes 30/2022${unitNote}`, scopeText())}
+  ${grid("sm:grid-cols-2 2xl:grid-cols-4", `
+    ${simpleMetric({ k:"INM", label:"INM tercapai", value:`${m.ok}/${m.rows.length}`, unit:"indikator", target:`${m.rows.length}/${m.rows.length}`, status: m.status, note:`${m.crit.length} di luar target · ${m.warn.length} waspada.` })}
+    ${simpleMetric({ k:"GDR", label:"Gross Death Rate (GDR)", value:fmtAuto(gdr.value), unit:"‰", target:gdr.target, status: gdr.status, note: gdr.note })}
+    ${simpleMetric({ k:"NDR", label:"Net Death Rate (NDR)", value:fmtAuto(ndr.value), unit:"‰", target:ndr.target, status: ndr.status, note: ndr.note })}
+    ${simpleMetric({ k:"READM", label:"Readmisi 30 hari", value:fmt(m.readm, 1), unit:"%", target:"<" + fmt(qualityTrend.readmisiTarget, 0) + "%", status: m.readmSt, note:"Naik sejak Juni; telaah per diagnosis." })}`)}
+  <div class="alert">${icon(m.crit.length ? "alert" : "check")}<h3>Ringkasan mutu ${esc(P().label.toLowerCase())}</h3><section><p>${verdict}</p></section></div>
   ${grid("2xl:grid-cols-2", `
-    ${card({ title: "Variansi GDR antar unit", sub: "kotak Q1–Q3 · garis putus = target", body: boxplot(),
-      foot: "ICU dan outlier di atasnya menyempitkan variasi antar bangsal; pantau kepatuhan alur klinis." })}
-    ${card({ title: "Funnel review mortalitas", sub: "bulan berjalan · 5 tahap", body: funnelChart(),
-      foot: "Dari 11 kematian ≥48 jam, 5 tindak lanjut tervalidasi — celah di tahap audit komite." })}`)}
+    ${card({ title: "Tindak lanjut mutu", sub: `${actions.length} langkah · pemilik dan tenggat · klik untuk melihat buktinya`,
+      body: actions.length ? itemList(actions) : `<p class="text-sm text-muted-foreground">Semua INM sesuai target periode ini.</p>`,
+      foot: sourceFoot("SIMAR · rapat komite mutu", "Diurutkan dari status paling berat.") })}
+    ${card({ id: "kartu-inm", title: "Status 13 Indikator Nasional Mutu", sub: "Permenkes 30/2022 · diurutkan dari status terberat · klik nama untuk definisi",
+      body: statusTable(sorted.map(i => ({ n: i.k, t: i.target, v: i.shown, st: i.status, k: i.key }))),
+      foot: sourceFoot("SIMAR Kemenkes", "Status dihitung dari target Lampiran Permenkes 30/2022; mendekati target = dalam 6% (atau 15% untuk indikator yang lebih rendah lebih baik).") })}`)}
+  ${card({ id: "kartu-matriks", title: "Matriks kepatuhan per unit", sub: state.unit === "all" ? "7 unit × 5 indikator keselamatan pasien" : esc(state.unit),
+    body: `<div class="flex flex-col gap-4">${heatTable()}${legend([["ok", "Sesuai target"], ["warn", "Mendekati target"], ["crit", "Di luar target"]])}</div>`,
+    foot: sourceFoot("Audit unit bulanan · IPCN", "Persentase kepatuhan per unit. IDO = infeksi daerah operasi; lebih rendah lebih baik.") })}
+  ${grid("md:grid-cols-2 2xl:grid-cols-3", `
+    ${card({ title: "Tren GDR", sub: `‰ · ${gran("12 bulan")} · ambang ≤45`, action: defBtn("GDR"),
+      body: trendChart({ series: [{ name: "GDR", data: qualityTrend.gdr }], labels: qualityTrend.labels, target: 45, unit: "‰", height: 220 }),
+      foot: sourceFoot("SIRS RL 3.1", "Kematian seluruhnya per 1.000 pasien keluar.") })}
+    ${card({ title: "Tren NDR", sub: `‰ · ${gran("12 bulan")} · ambang ≤25`, action: defBtn("NDR"),
+      body: trendChart({ series: [{ name: "NDR", data: qualityTrend.ndr }], labels: qualityTrend.labels, target: 25, unit: "‰", height: 220 }),
+      foot: sourceFoot("SIRS RL 3.1", "Kematian ≥48 jam per 1.000 pasien keluar.") })}
+    ${card({ id: "kartu-readmisi", title: "Tren readmisi 30 hari", sub: `% · ${gran("12 bulan")} · target <${fmt(qualityTrend.readmisiTarget, 0)}`, action: defBtn("READM"),
+      body: trendChart({ series: [{ name: "Readmisi", data: qualityTrend.readmisi }], labels: qualityTrend.labels, target: qualityTrend.readmisiTarget, unit: "%", height: 220 }),
+      foot: sourceFoot("SIMRS", "Dirawat ulang ≤30 hari dengan diagnosis terkait.") })}`)}
+  ${grid("2xl:grid-cols-2", `
+    ${card({ title: "Review kematian ≥48 jam", sub: `${P().label.toLowerCase()} · dari ${fmt(st.discharges)} pasien keluar`, body: st.html,
+      foot: sourceFoot("SIMRS · notulen komite", `Dari ${fmt(st.s[0].n)} kematian ≥48 jam, ${fmt(st.s[st.s.length - 1].n)} tindak lanjut tervalidasi; celah terbesar di tahap ${esc(st.s[st.gap].label.toLowerCase())}.`) })}
+    ${card({ title: "Sebaran GDR per unit", sub: "GDR bulanan per unit · 12 bulan · kotak = kuartil 1–3, garis = median", body: boxplot(),
+      foot: sourceFoot("SIRS RL 3.1", "ICU paling tinggi dan lebar sebarannya; titik di luar kotak adalah bulan ekstrem, merah bila melewati ambang 45‰.") })}`)}
   ${unsetTargetCard(["MORT30", "SURV5", "PJATUH"], "Indikator outcome tanpa target terverifikasi", "target internal · belum ditetapkan")}`;
 }
 
@@ -527,7 +589,7 @@ function boxplot() {
   return chart(`Kotak variansi GDR per unit; target ${d.target} per mil`, h => merge(baseOpts("boxPlot", h), {
     series: [
       { name: "GDR", type: "boxPlot", data: d.groups.map(g => ({ x: short(g.name), y: [g.min, g.q1, g.median, g.q3, g.max] })) },
-      { name: "Outlier", type: "scatter", data: d.groups.flatMap(g => (g.out || []).map(o => ({ x: short(g.name), y: o }))) }
+      { name: "Outlier", type: "scatter", data: d.groups.flatMap(g => (g.out || []).map(o => ({ x: short(g.name), y: o, fillColor: o > d.target ? C.crit() : C.main() }))) }
     ],
     colors: [C.main(), C.crit()],
     plotOptions: { boxPlot: { colors: { upper: col("--chart-1", 0.55), lower: C.main() } }, bar: { columnWidth: "45%" } },
@@ -538,21 +600,6 @@ function boxplot() {
     legend: { show: false },
     annotations: { yaxis: [{ y: d.target, borderColor: C.crit(), strokeDashArray: 5,
       label: { text: `Target ${d.target}‰`, position: "left", textAnchor: "start", offsetX: 6, style: { background: C.crit(), color: C.onCrit(), fontSize: "12px" }, borderColor: C.crit() } }] }
-  }), 280);
-}
-
-function funnelChart() {
-  const s = mortalityFunnel.stages.reduce((acc, x, i) => { const n = Math.min(pc(x.n), i ? acc[i - 1].n : Infinity); acc.push({ ...x, n }); return acc; }, []);
-  return chart(`Funnel audit kematian: dari ${s[0].n} pasien keluar sampai ${s[s.length - 1].n} tindak lanjut`, h => merge(baseOpts("bar", h), {
-    series: [{ name: "Jumlah", data: s.map(x => x.n) }],
-    colors: [C.main()],
-    plotOptions: { bar: { horizontal: true, isFunnel: true, barHeight: "78%", borderRadius: 3 } },
-    dataLabels: { enabled: true, formatter: (v, o) => {
-      const i = o.dataPointIndex;
-      return i ? `${s[i].label}: ${v} (${fmt(v / s[i - 1].n * 100)}%)` : `${s[0].label}: ${v}`;
-    }, style: { fontSize: "12px", fontWeight: 500 }, dropShadow: { enabled: false } },
-    xaxis: { categories: s.map(x => x.label) },
-    legend: { show: false }
   }), 280);
 }
 
@@ -921,8 +968,8 @@ function renderStrategi() {
 /* Indikator tanpa target terverifikasi: abu-abu, bukan RAG (§D). */
 function unsetTargetCard(keys, title, sub) {
   const items = keys.map(k => unsetTargets.find(x => x.k === k)).filter(Boolean);
-  return card({ title, sub, body: grid("sm:grid-cols-2 2xl:grid-cols-3", items.map(x => simpleMetric({ ...x, status: "na" })).join("")),
-    foot: "Ditampilkan tanpa warna RAG sampai dasar target disepakati (lihat dokumen matriks §E.2)." });
+  return card({ title, sub, body: itemList(items.map(x => ({ title: `${x.label}: ${x.value}${x.unit ? " " + x.unit : ""}`, desc: x.note, badge: badge("na"), k: x.k }))),
+    foot: "Ditampilkan tanpa warna status sampai dasar target disepakati komite. Klik untuk definisi." });
 }
 
 /* ================= breadcrumb drill: ringkasan → domain → unit → kasus ================= */
@@ -1145,6 +1192,9 @@ function currentValue(k) {
     if (k === "ALATKRIT") return { value: e.readyPct == null ? "–" : `${fmt(e.readyPct, 1)} %`, status: e.readyPct == null ? "na" : statusFromTarget("≥" + e.readyTarget, e.readyPct) };
     if (k === "KALIB") return { value: `${fmt(e.calibPct, 1)} %`, status: "na" };
     return { value: `${e.excursions} kejadian`, status: e.excursions ? "warn" : "ok" }; }
+  if (k === "INM") { const m = mutuFor(); return { value: `${m.ok}/${m.rows.length} tercapai`, status: m.status }; }
+  if (/^INM\d+$/.test(k)) { const i = mutuFor().rows.find(x => x.key === k); return i ? { value: i.shown, status: i.status } : null; }
+  if (k === "READM") { const m = mutuFor(); return { value: `${fmt(m.readm, 1)} %`, status: m.readmSt }; }
   if (["REV", "AR", "DENIAL", "COLL"].includes(k)) { const f = financeFor();
     return k === "REV" ? { value: `${fmt(f.revenue, 1)} M`, status: f.st.rev } : k === "AR" ? { value: `${fmt(f.arDays)} hari`, status: f.st.ar }
       : k === "DENIAL" ? { value: `${fmt(f.denialRate, 1)} %`, status: f.st.den } : { value: `${fmt(f.collectionRate, 1)} %`, status: f.st.col }; }

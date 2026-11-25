@@ -42,7 +42,7 @@ const execKpis = [
   { k:"GDR", name:"Gross Death Rate", value:41, unit:"‰", target:"≤45‰",
     band:[0,45], dir:"low", status:"warn", delta:2, good:"down",
     series:[38,36,39,42,40,39,41], labels:["Des","Jan","Mar","Mei","Jul","Sep","Nov"],
-    note:"Mendekati ambang; 2 kematian bulan ini sudah masuk audit morbiditas.",
+    note:"Mendekati ambang; 2 kematian bulan ini sudah masuk audit kematian.",
     source:"SIRS RL 3.1", definition:"Kematian seluruhnya ÷ pasien keluar × 1.000." },
   { k:"NDR", name:"Net Death Rate", value:21, unit:"‰", target:"≤25‰",
     band:[0,25], dir:"low", status:"ok", delta:-1, good:"down",
@@ -67,7 +67,7 @@ const safetyIndicators = [
   { key:"hand", name:"Kebersihan tangan", target:">85%", dir:"high", unit:"%" },
   { key:"apd", name:"Kepatuhan APD", target:">90%", dir:"high", unit:"%" },
   { key:"ident", name:"Identifikasi pasien", target:"100%", dir:"high", unit:"%" },
-  { key:"fall", name:"Pencegahan jatuh", target:"100%", dir:"high", unit:"%" },
+  { key:"fall", name:"Pencegahan risiko jatuh", target:"100%", dir:"high", unit:"%" },
   { key:"ido", name:"IDO / HAIs", target:"<1,5%", dir:"low", unit:"%" }
 ];
 const safetyMatrix = [
@@ -206,6 +206,23 @@ const inm = [
   { k:"Kepuasan pasien", target:">85", value:86.4, numeric:86.4, dir:"high", status:"ok" }
 ];
 
+/* Ringkasan profil 13 INM (Lampiran Permenkes 30/2022); kunci INM1..INM13 mengikuti urutan array inm */
+const inmFormulas = [
+  "Tindakan kebersihan tangan yang dilakukan ÷ peluang kebersihan tangan yang diamati × 100%",
+  "Petugas yang memakai APD sesuai indikasi ÷ petugas yang diamati × 100%",
+  "Pelayanan dengan identifikasi pasien yang benar ÷ pelayanan yang diamati × 100%",
+  "SC emergensi kategori I dengan waktu tanggap ≤30 menit ÷ seluruh SC emergensi kategori I × 100%",
+  "Pasien rawat jalan dengan waktu tunggu ≤60 menit ÷ pasien rawat jalan yang disurvei × 100%",
+  "Operasi elektif yang tertunda >1 jam dari jadwal ÷ seluruh operasi elektif × 100%",
+  "Visite dokter penanggung jawab pukul 06.00–14.00 ÷ visite yang diamati × 100%",
+  "Hasil kritis yang dilaporkan ≤30 menit ÷ seluruh hasil kritis × 100%",
+  "Resep yang sesuai Formularium Nasional ÷ resep yang ditelaah × 100%",
+  "Pelayanan yang sesuai clinical pathway ÷ pelayanan dengan clinical pathway yang diaudit × 100%",
+  "Pasien berisiko jatuh yang mendapat upaya pencegahan lengkap ÷ pasien berisiko jatuh × 100%",
+  "Komplain yang ditanggapi sesuai waktu standar ÷ seluruh komplain × 100%",
+  "Indeks kepuasan pasien dari survei kepuasan"
+];
+
 const sirs = [
   { k:"BOR", target:"60–85%", value:87, status:"crit" },
   { k:"ALOS", target:"6–9 hari", value:"7,1", status:"ok" },
@@ -252,10 +269,10 @@ const alerts = [
     title:"ICU 92% — 3 pasien IGD menunggu bed", owner:"Manajer Operasional", age:"18 mnt",
     detail:"BOR RS 87% di atas ambang 85%. Buka 2 bed cadangan atau percepat 5 discharge tertunda.",
     action:"Lihat kapasitas" },
-  { sev:"crit", domain:"Mutu", tab:"mutu",
+  { sev:"warn", domain:"Mutu", tab:"mutu",
     title:"Kepatuhan alur klinis 76% (target >80%)", owner:"Komite Mutu", age:"2 jam",
     detail:"Terendah di Rawat Inap C. Audit 30 rekam medis dalam 7 hari.",
-    action:"Lihat matriks mutu" },
+    action:"Lihat 13 INM" },
   { sev:"crit", domain:"Akses", tab:"akses",
     title:"Tanggap SC emergensi 74% (target ≥80%)", owner:"Kepala OK", age:"3 jam",
     detail:"Rata-rata 34 menit; 6 kasus melewati 30 menit. Tinjau alur konsul anestesi.",
@@ -356,6 +373,8 @@ const definitions = {
         target:"≤45‰", basis:"Praktik Depkes 2005 · SIRS RL 3.1", source:"SIMRS" },
   NDR:{ name:"Net Death Rate", formula:"Kematian ≥48 jam ÷ pasien keluar × 1.000",
         target:"≤25‰", basis:"Praktik Depkes 2005 · SIRS RL 3.1", source:"SIMRS" },
+  READM:{ name:"Readmisi 30 hari", formula:"Pasien dirawat ulang ≤30 hari dengan diagnosis terkait ÷ pasien keluar hidup × 100%",
+          target:"<5%", basis:"Internal — usulan target RS, perlu ditetapkan komite medik", source:"SIMRS" },
   INM:{ name:"Indikator Nasional Mutu", formula:"13 indikator wajib RS",
         target:"Sesuai Permenkes 30/2022", basis:"Permenkes 30/2022 (wajib)", source:"SIMAR Kemenkes" },
   MORT30:{ name:"Mortalitas 30 hari", formula:"Kematian ≤30 hari pasca pulang/masuk ÷ pasien keluar × 100%",
@@ -499,7 +518,7 @@ const chatKnowledge = [
   }},
   { match:/gdr|ndr|kematian|mortalitas|readmisi/i, act:()=>{
       return { lede:`GDR ${execKpis[4].value}‰ (≤45) · NDR ${execKpis[5].value}‰ (≤25)`,
-        body:`GDR mendekati ambang; NDR stabil. Readmisi 30 hari ${fmt(qualityTrend.readmisi[11],1)}% (target <5%). Dua kematian bulan ini sudah masuk audit morbiditas.`,
+        body:`GDR mendekati ambang; NDR stabil. Readmisi 30 hari ${fmt(qualityTrend.readmisi[11],1)}% (target <5%). Kematian ≥48 jam bulan ini sudah masuk audit kematian komite.`,
         evidence:["GDR","NDR"], acts:[{t:"Buka Mutu",f:()=>go("mutu")}] };
   }}
 ];
@@ -530,7 +549,7 @@ const mortalityFunnel = {
   stages:[
     { label:"Pasien keluar (seluruh)", n:486 },
     { label:"Kematian ≥48 jam", n:11 },
-    { label:"Audit morbiditas komite", n:8 },
+    { label:"Audit kematian oleh komite", n:8 },
     { label:"Rekomendasi tertulis", n:7 },
     { label:"Tindak lanjut tervalidasi", n:5 }
   ]
@@ -572,3 +591,7 @@ capacity.bedBoard = [
   { unit:"VIP / Paviliun",beds:22, occupied:[13,13,14,13], clean:2, hold:0 },
   { unit:"IGD (holding)", beds:6,  occupied:[6,6,6,5],   clean:0, hold:3 }
 ];
+
+/* definisi per INM (setelah objek definitions terbentuk) */
+inm.forEach((i, n) => { definitions["INM" + (n + 1)] = { name: i.k, formula: inmFormulas[n], target: i.target,
+  basis: "Permenkes 30/2022 (Lampiran profil indikator)", source: "SIMAR Kemenkes · audit internal (mock)" }; });
