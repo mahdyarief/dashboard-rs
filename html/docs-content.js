@@ -192,8 +192,8 @@ const docsContent = {
     ]
   },
 
-  /* verified:true = metadata diperiksa ke sumber asli (riset §6–§7);
-     false = dari riset awal, belum diverifikasi ulang (riset §8). */
+  /* verified:true = metadata dan klaim dicocokkan ke sumber asli (Crossref/OpenAlex,
+     abstrak). Tjomsland, Jayawardena, Bohm diverifikasi 2026-11-25. */
   references: [
     { id:"nabovati", verified:true,
       cite:"Nabovati E, Farrahi R, Sadeqi Jabali M, Khajouei R, Abbasi R. Identifying and prioritizing the key performance indicators for hospital management dashboard at a national level: Viewpoint of hospital managers. Health Informatics Journal. 2023;29(4).",
@@ -227,17 +227,17 @@ const docsContent = {
       cite:"Departemen Kesehatan RI. Pedoman Penyelenggaraan Rekam Medis Rumah Sakit. 2005 (dirujuk melalui BPS Sirusa dan profil Dinas Kesehatan daerah).",
       u:"https://diskes.badungkab.go.id/storage/diskes/file/profil-dinkes-2025-final-20260629105027-XL268.pdf",
       usedFor:"Asal nilai ideal BOR 60–85%, ALOS 6–9 hari, TOI 1–3 hari, BTO 40–50×/tahun. Ini acuan praktik, bukan pasal peraturan." },
-    { id:"tjomsland", verified:false,
-      cite:"Tjomsland dkk. Dashboard variasi tak beralasan untuk dewan dan pimpinan rumah sakit. BMJ Leader. 2023.",
-      u:"",
-      usedFor:"Dewan RS perlu melihat variasi antarunit, kematian 30 hari, dan kesintasan kanker 5 tahun — dasar diagram kotak dan kartu outcome di halaman Mutu." },
-    { id:"jayawardena", verified:false,
-      cite:"Jayawardena dkk. Desain antarmuka pendukung keputusan klinis untuk deteksi perburukan pasien. International Journal of Medical Informatics. 2025.",
+    { id:"tjomsland", verified:true,
+      cite:"Tjomsland O, Thoresen C, Ingebrigtsen T, Søreide E, Frich JC. Reducing unwarranted variation: can a 'clinical dashboard' be helpful for hospital executive boards and top-level leaders? BMJ Leader. 2023.",
+      u:"https://doi.org/10.1136/leader-2023-000749",
+      usedFor:"Dashboard untuk dewan RS di Norwegia yang memantau variasi tak beralasan antarunit, dengan ukuran outcome kematian 30 hari setelah masuk RS dan kesintasan kanker 5 tahun — dasar diagram variasi antarunit dan kartu outcome di halaman Mutu. Catatan: artikel ini menjelaskan proses pengembangan, belum mengevaluasi dampaknya." },
+    { id:"jayawardena", verified:true,
+      cite:"Jayawardena T, Baysari MT, Bamgboje-Ayodele A. Interface design features of clinical decision support systems for real-time detection of deterioration: A scoping review. International Journal of Medical Informatics. 2025;105946.",
       u:"https://doi.org/10.1016/j.ijmedinf.2025.105946",
-      usedFor:"Tampilan grafik bersama tabel paling disukai; warna lampu lalu lintas tiga tingkat paling umum — dasar kartu berwarna dan grafik+tabel." },
-    { id:"kaplan", verified:false,
-      cite:"Bohm dkk. Scoping review balanced scorecard di layanan kesehatan (87 BSC). BMJ Open Quality. 2021.",
-      u:"",
-      usedFor:"Empat sudut pandang Kaplan–Norton paling banyak dipakai di BSC kesehatan; pemilihan indikator harus terbatas dan bertahap." }
+      usedFor:"Dari 17 dashboard klinis yang ditinjau: grafik dan tabel paling banyak dipakai, dan klinisi lebih menyukai dashboard yang memuat keduanya; warna adalah penanda risiko yang paling sering dipakai, dan separuh dashboard berwarna memakai skema lampu lalu lintas. Frekuensi peringatan yang tinggi membuat klinisi enggan memakai sistem — dasar membatasi jumlah item di papan prioritas." },
+    { id:"kaplan", verified:true,
+      cite:"Bohm V, Lacaille D, Spencer N, Barber CEH. Scoping review of balanced scorecards for use in healthcare settings: development and implementation. BMJ Open Quality. 2021.",
+      u:"https://doi.org/10.1136/bmjoq-2020-001293",
+      usedFor:"Tinjauan 87 BSC di layanan kesehatan: 97% merujuk BSC Kaplan–Norton, tetapi hanya 21% memakai empat perspektif aslinya tanpa diubah, dan hanya 69% dikaitkan dengan rencana strategis. Dasar bahwa halaman Strategi harus terhubung ke rencana strategis RS dan boleh menyesuaikan perspektifnya." }
   ]
 };

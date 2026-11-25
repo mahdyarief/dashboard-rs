@@ -273,7 +273,7 @@ Rabiei & Almasi 2022 (54 dari 1.254 artikel, rentang 2000–Mei 2020) memetakan:
   infrastruktur data.
 - **Zagorecki dkk. (2012)** — executive dashboard sebagai abstraksi tinggi yang
   mencegah *information overload* lewat set KPI terbatas.
-- **Tjomsland dkk. (BMJ Leader 2023)** — untuk dewan RS dan pimpinan puncak,
+- **Tjomsland dkk. (BMJ Leader 2023, doi:10.1136/leader-2023-000749; diverifikasi 2026-11-25)** — untuk dewan RS dan pimpinan puncak,
   dashboard *unwarranted variation*: mortalitas 30 hari, survival kanker 5 tahun,
   dan utilisasi prosedur yang dipengaruhi preferensi/penyedia.
 - **Tiering beban informasi** — lihat tabel berjenjang pada §3.
@@ -427,7 +427,7 @@ sumber. Gunakan sebagai petunjuk pencarian, bukan sebagai sitasi siap pakai.
 | 21 | Umbrella Review of Healthcare Dashboards — Almasi et al., *Digital Health* 2026, doi:10.1177/20552076261429609 | 41 studi, 12 aplikasi; klasifikasi *clinical* vs *quality dashboard* |
 | 22 | Framework for Evaluating Dashboards — Zhuang, Concannon, Manley, IEEE TVCG 2022, doi:10.1109/tvcg.2022.3147154 | 7 skenario evaluasi: task, behaviour, workflow, engagement, utility, algorithm, implementation |
 | 23 | Patient Safety Dashboard — Mehdibagli et al., *Med J Iran* 2025, doi:10.47176/mjiri.39.132 | 62 KPI, 8 kategori; SUS 82,99 |
-| 24 | CDS Deterioration Interface — Jayawardena et al. 2025, doi:10.1016/j.ijmedinf.2025.105946 | Grafik + tabel paling disukai; traffic light 3 warna paling umum |
+| 24 | CDS Deterioration Interface — Jayawardena, Baysari, Bamgboje-Ayodele, *IJMI* 2025, doi:10.1016/j.ijmedinf.2025.105946 · PMID 40300487 — **diverifikasi 2026-11-25** | 24 artikel (17 dashboard, 7 alert). Grafik + tabel paling banyak dipakai dan paling disukai klinisi; warna adalah penanda risiko tersering, dan **separuh** dashboard berwarna memakai skema traffic light (koreksi: bukan "paling umum"); frekuensi alert tinggi menurunkan penerimaan |
 | 25 | Triptychon — Kittel et al. 2023, PMC10627022 | 3 panel (lokasi/prosedur, lab, vital); 20 partisipan; warna membingungkan, klik berlebih |
 | 26 | Ludlow & Westbrook 2022, doi:10.4324/9781003109945-42 | 6 fasilitator/hambatan: co-design, usability, aksesibilitas, akurasi data, infrastruktur, alur kerja |
 | 27 | Heuristic Evaluation of XAI in Dashboards — SHTI 2025, doi:10.3233/shti250341 | Evaluasi heuristik penjelasan pada dashboard kesehatan |
@@ -451,7 +451,7 @@ sumber. Gunakan sebagai petunjuk pencarian, bukan sebagai sitasi siap pakai.
 
 | Rujukan | Temuan yang dicatat |
 |---|---|
-| Bohm et al., *BMJ Open Quality* 2021 | Scoping 87 BSC kesehatan; 4 perspektif Kaplan-Norton dominan; hanya 69% selaras strategi; seleksi indikator harus terbatas & iteratif |
+| Bohm, Lacaille, Spencer, Barber, *BMJ Open Quality* 2021, doi:10.1136/bmjoq-2020-001293 — **diverifikasi 2026-11-25** | Scoping 87 BSC kesehatan; 97% merujuk BSC Kaplan–Norton tetapi **hanya 21%** memakai perspektif identik dengan versi asli (koreksi: bukan "4 perspektif dominan"); 69% selaras rencana strategis; pasien/keluarga jarang dilibatkan (3%). Klaim "seleksi indikator harus terbatas & iteratif" **tidak ditemukan** di abstrak — jangan dikutip |
 | Abu Jaber & Nashwan, *Cureus* 2022 | Framework 5 dimensi (+ quality of care); financial ROI/income/budget, customer satisfaction/komplain, quality HAIs/readmisi/adverse events, internal LOS/BOR/door-to-therapy, learning turnover/training/EHR |
 | Behrouzi et al., *Australian Health Review* 2014 | 41% studi RS memakai KPI lebih banyak dari rekomendasi → solusi BSC berjenjang |
 | Si et al., *IJERPH* 2017 | modified DEMATEL: adverse events, infeksi nosokomial, LOS, BOR, financial |
@@ -710,7 +710,7 @@ Komponen kunci:
 8. Untuk dimensi *safety*, artikel menyebut 38 studi di satu paragraf dan 46 di
    paragraf lain; 46 dipakai untuk prevalensi subkategori karena konsisten dengan
    abstrak dan Table 4.
-9. Seluruh §8 (rujukan pendukung) belum diverifikasi ulang di sesi ini.
+9. Seluruh §8 (rujukan pendukung) belum diverifikasi ulang di sesi ini, kecuali Jayawardena 2025 dan Bohm 2021 (serta Tjomsland 2023 di §5.3) yang diverifikasi 2026-11-25 beserta koreksi klaimnya.
 10. Lapisan konversasional (§10–§12) bersandar pada rujukan §8.3 yang belum
     diverifikasi, sehingga angka akurasi (94%, 29,6%, 86,3%) harus diperlakukan
     sebagai klaim dari dokumen sumber, bukan hasil ukur independen.

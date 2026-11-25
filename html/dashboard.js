@@ -1004,7 +1004,7 @@ function renderStrategi() {
           <p style="font-size:.74rem;line-height:1.55;color:var(--ink-2)">Gunakan skor untuk membandingkan arah antarperspektif, bukan untuk memberi peringkat unit. Indikator dengan status BREACH tetap ditindaklanjuti terlepas dari skornya.</p>
           <p style="font-size:.74rem;line-height:1.55;color:var(--ink-2)">BSC tidak menambah indikator baru; ia menyusun ulang 18–22 indikator inti ke dalam rantai sebab-akibat.</p>
         </div>
-        <div class="panel-foot"><span>Dasar: Kaplan &amp; Norton; tinjauan BSC kesehatan (Bohm 2021, belum diverifikasi ulang).</span></div>
+        <div class="panel-foot"><span>Dasar: Kaplan &amp; Norton; tinjauan 87 BSC kesehatan (Bohm dkk. 2021, BMJ Open Quality) — 97% merujuk Kaplan–Norton, tetapi hanya 21% memakai empat perspektif aslinya tanpa diubah.</span></div>
       </div>
     </div>
   </section>`;
@@ -1099,7 +1099,7 @@ function renderDocs() {
           <p class="ref-use"><b>Dipakai untuk:</b> ${esc(r.usedFor)}</p>
           <span class="badge" data-variant="secondary" data-state="default" data-status="${r.verified ? "ok" : "na"}">${r.verified ? "TERVERIFIKASI" : "BELUM DIVERIFIKASI ULANG"}</span>
         </li>`).join("")}</ol>
-      <div class="panel-foot"><span>Rujukan bertanda "belum diverifikasi ulang" berasal dari riset awal dan masih perlu dicek ke naskah aslinya. Uraian lengkap: <code>docs/RESEARCH_DASHBOARD_RS.md</code> dan <code>docs/DASHBOARD_COMPONENT_MATRIX.md</code>.</span></div>
+      <div class="panel-foot"><span>Semua rujukan sudah dicocokkan ke metadata Crossref/OpenAlex dan abstraknya. Status ini memeriksa keberadaan dan isi klaim, bukan kualitas metodologi studi. Uraian lengkap: <code>docs/RESEARCH_DASHBOARD_RS.md</code> dan <code>docs/DASHBOARD_COMPONENT_MATRIX.md</code>.</span></div>
     </div>
   </section>`;
 }
