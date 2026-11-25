@@ -1279,7 +1279,29 @@ function setUnit(name) {
   render();
 }
 
+/* ================= tema: otomatis → terang → gelap ================= */
+const THEME_LABEL = { auto:"Otomatis", light:"Terang", dark:"Gelap" };
+const darkQuery = matchMedia("(prefers-color-scheme: dark)");
+function storedTheme() {
+  try { const t = localStorage.getItem("theme"); return t === "light" || t === "dark" ? t : "auto"; } catch { return "auto"; }
+}
+function applyTheme(mode) {
+  const dark = mode === "dark" || (mode === "auto" && darkQuery.matches);
+  document.documentElement.classList.toggle("dark", dark);
+  document.documentElement.dataset.themeMode = mode;
+  $("#themeLabel").textContent = THEME_LABEL[mode];
+  $("#themeBtn").setAttribute("aria-label", `Tema: ${THEME_LABEL[mode]}. Klik untuk mengganti.`);
+}
+function cycleTheme() {
+  const next = { auto:"light", light:"dark", dark:"auto" }[storedTheme()];
+  try { next === "auto" ? localStorage.removeItem("theme") : localStorage.setItem("theme", next); } catch {}
+  applyTheme(next);
+}
+
 function init() {
+  applyTheme(storedTheme());
+  $("#themeBtn").addEventListener("click", cycleTheme);
+  darkQuery.addEventListener("change", () => { if (storedTheme() === "auto") applyTheme("auto"); });
   initSelects();
   renderTabs();
   const fromHash = location.hash.slice(1);
