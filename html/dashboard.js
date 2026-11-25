@@ -643,8 +643,78 @@ function bedBoard() {
       }), r.clean, r.hold] })));
 }
 
-function renderOperasional() {
+/* ================= pra-verifikasi klaim (ValidAI) & kesiapan alat (ESOPT) ================= */
+const defBtn = k => `<button type="button" class="btn" data-variant="ghost" data-size="sm" data-k="${k}" aria-label="Definisi ${k}">${icon("info")}Definisi</button>`;
+const sourceFoot = (s, text) => `<div class="flex flex-col items-start gap-2"><span class="badge" data-variant="outline">${esc(s)} · mock</span><span>${text}</span></div>`;
+function precheckFor() {
+  const c = claimPrecheck, verified = pc(c.verified), rate = pv("pv", c.complete / c.verified * 100, 0.05);
+  return { ...c, verified, complete: Math.round(verified * rate / 100), rate,
+    avgFixItems: pv("pvfix", c.avgFixItems, 0.08),
+    categories: c.categories.map(x => ({ ...x, n: pc(x.n) })), checklistFails: c.checklistFails.map(x => ({ ...x, n: pc(x.n) })) };
+}
+function precheckCards() {
+  const c = precheckFor();
+  return grid("2xl:grid-cols-2", `
+    ${card({ title: "Pra-verifikasi berkas klaim", sub: `${fmt(c.verified)} berkas diperiksa sebelum dikirim`, action: defBtn("PRAVER"),
+      body: `<div class="flex flex-col gap-4">
+        <div class="flex flex-wrap items-end gap-x-6 gap-y-2">
+          <div class="flex flex-col"><strong class="text-2xl font-semibold tabular-nums">${fmt(c.rate, 1)}<span class="ml-1 text-sm font-normal text-muted-foreground">% lolos</span></strong><span class="text-sm text-muted-foreground">${fmt(c.complete)} Complete · ${fmt(c.verified - c.complete)} Incomplete</span></div>
+          <div class="flex flex-col"><strong class="text-2xl font-semibold tabular-nums">${fmt(c.avgFixItems, 1)}</strong><span class="text-sm text-muted-foreground">butir perbaikan per berkas</span></div>
+          ${badge("na")}
+        </div>
+        <div class="progress h-2" role="progressbar" aria-valuenow="${Math.round(c.rate)}" aria-valuemin="0" aria-valuemax="100" aria-label="${fmt(c.rate, 1)}% berkas lolos"><span style="width:${c.rate}%"></span></div>
+        <p class="text-sm font-medium">Temuan per kategori aturan</p>
+        ${hBars({ rows: c.categories.map(x => ({ label: x.label, v: x.n })), unit: "×", label: "Temuan pra-verifikasi per kategori", highlight: [0] })}
+      </div>`,
+      foot: sourceFoot(c.source, "Kategori: Aturan Coding Medis, Aturan Klinis, Berita Acara Kesepakatan, Peraturan Menteri Kesehatan. Coding medis searah dengan penyebab denial terbesar (kode INA-CBG tidak sesuai). Target belum ditetapkan karena aturan Complete/Incomplete belum diketahui.") })}
+    ${card({ title: "Butir checklist paling sering gagal", sub: "dari 10 butir kelengkapan berkas",
+      body: hBars({ rows: c.checklistFails.map(x => ({ label: x.label, v: x.n })), unit: "×", label: "Butir checklist klaim gagal", highlight: [0, 1], highlightColor: "warn" }),
+      foot: "Perbaiki butir ini sebelum berkas dikirim ke BPJS untuk menekan denial rate." })}`);
+}
+
+function equipmentFor() {
+  const e = equipment;
+  const rows = e.units.filter(u => state.unit === "all" || u.unit === state.unit);
+  const tot = rows.reduce((a, u) => a + u.total, 0), rdy = rows.reduce((a, u) => a + u.ready, 0);
+  return { ...e, rows, tot, rdy, readyPct: tot ? rdy / tot * 100 : null,
+    calibPct: e.calibration.inPeriod / e.calibration.required * 100,
+    excursions: pc(e.coldChain.excursions),
+    due: e.calibrationDue.filter(d => state.unit === "all" || d.unit === state.unit) };
+}
+function renderEquipment() {
+  const e = equipmentFor();
+  const readySt = e.readyPct == null ? "na" : statusFromTarget("≥" + e.readyTarget, e.readyPct);
+  const utilBad = e.utilities.filter(u => u.st !== "ok").length;
+  const pctCell = u => { const p = Math.round(u.ready / u.total * 100);
+    return `<div class="flex min-w-28 flex-col gap-1"><div class="progress ${p < 85 ? "*:bg-destructive" : ""}" role="progressbar" aria-valuenow="${p}" aria-valuemin="0" aria-valuemax="100" aria-label="${p}% siap"><span style="width:${p}%"></span></div><span class="text-xs text-muted-foreground tabular-nums">${p}%</span></div>`; };
   return `
+  ${sectionHead("Kesiapan alat & utilitas kritis", "snapshot hari ini · alat kritis per unit", scopeText())}
+  ${grid("sm:grid-cols-2 2xl:grid-cols-4", `
+    ${simpleMetric({ k:"ALATKRIT", label:"Alat kritis siap pakai", value: e.readyPct == null ? "–" : fmt(e.readyPct, 1), unit:"%", target:"≥" + e.readyTarget + "%", status: readySt, note: e.tot ? `${e.rdy} dari ${e.tot} alat berstatus READY.` : "Unit ini tidak punya alat kritis terdaftar." })}
+    ${simpleMetric({ k:"KALIB", label:"Kepatuhan kalibrasi", value: fmt(e.calibPct, 1), unit:"%", status:"na", note:`${e.calibration.inPeriod} dari ${e.calibration.required} alat dalam masa kalibrasi.` })}
+    ${simpleMetric({ k:"COLDCHAIN", label:"Excursion cold chain", value: fmt(e.excursions), unit:"kejadian", target:"0", status: e.excursions ? "warn" : "ok", note:`${e.coldChain.storages} unit penyimpanan farmasi dipantau.` })}
+    ${simpleMetric({ label:"Utilitas kritis normal", value: `${e.utilities.length - utilBad}/${e.utilities.length}`, unit:"sistem", target:"semua normal", status: utilBad ? "warn" : "ok", note:"Oksigen, vakum, genset, UPS, cold chain." })}`)}
+  ${grid("2xl:grid-cols-5", `
+    <div class="min-w-0 2xl:col-span-3">${card({ title: "Kesiapan alat kritis per unit", sub: "merah = <85% siap",
+      body: table([{ t:"Unit" }, { t:"Alat", num:true }, { t:"Siap", num:true }, { t:"Peringatan", num:true }, { t:"Tidak siap", num:true }, { t:"% siap" }],
+        e.rows.map(u => ({ cells: [`<span class="font-medium">${esc(u.unit)}</span>`, u.total, u.ready, u.warn, u.down ? `<span class="font-medium text-destructive">${u.down}</span>` : 0, pctCell(u)] })),
+        "Unit ini tidak punya alat kritis terdaftar."),
+      foot: sourceFoot(e.source, "Peringatan = menunggu kalibrasi, maintenance, pembersihan, atau aksesori; tidak siap = rusak, dikarantina, atau out of service.") })}</div>
+    <div class="min-w-0 2xl:col-span-2">${card({ title: "Utilitas kritis", sub: "status terkini",
+      body: itemList(e.utilities.map(u => ({ title: u.name, desc: `${u.value} · data ${u.age} lalu`, badge: badge(u.st, u.st === "ok" ? "NORMAL" : u.st === "warn" ? "PERHATIAN" : "GANGGUAN") }))),
+      foot: e.coldChain.note })}</div>`)}
+  ${grid("2xl:grid-cols-2", `
+    ${card({ title: "Kalibrasi jatuh tempo", sub: "≤30 hari dan terlambat",
+      body: `<div class="flex flex-col gap-4">
+        <div class="progress h-2" role="progressbar" aria-valuenow="${Math.round(e.calibPct)}" aria-valuemin="0" aria-valuemax="100" aria-label="${fmt(e.calibPct, 1)}% alat dalam masa kalibrasi"><span style="width:${e.calibPct}%"></span></div>
+        ${e.due.length ? itemList(e.due.map(d => ({ title: d.name, desc: `${d.unit} · ${d.due}`, badge: badge(d.st, d.st === "crit" ? "TERLAMBAT" : d.st === "warn" ? "SEGERA" : "TERJADWAL") }))) : `<p class="text-sm text-muted-foreground">Tidak ada kalibrasi jatuh tempo untuk unit ini.</p>`}
+      </div>`,
+      foot: "Alat yang lewat jatuh tempo kalibrasi dikarantina sampai lulus uji ulang." })}
+    ${card({ title: "Tren kesiapan alat kritis", sub: `% READY · ${gran("7 bulan terakhir")} · target ≥${e.readyTarget}%`,
+      body: trendChart({ series: [{ name: "Alat kritis siap", data: e.readySeries }], labels: e.readyLabels, target: e.readyTarget, unit: "%", label: "Tren kesiapan alat kritis", height: 240 }) })}`)}`;
+}
+
+function renderOperasional() {  return `
   ${sectionHead("Operasional & kapasitas", "Barber Johnson · per bangsal", scopeText())}
   ${grid("2xl:grid-cols-5", `
     <div class="min-w-0 2xl:col-span-3">${card({ title: "Barber Johnson", sub: "BOR vs ALOS per unit · area biru = zona efisiensi",
@@ -665,7 +735,8 @@ function renderOperasional() {
   ${grid("2xl:grid-cols-2", `
     ${card({ title: "Tren okupansi", sub: `BOR % · ${gran("14 hari terakhir")}`, body: trendChart({ series: [{ name: "BOR harian", data: capacity.occupancySeries }], labels: capacity.occupancyLabels, band: [60, 85], unit: "%" }) })}
     ${card({ title: "Pasien prioritas", sub: "drill-down unit", body: priorityTable(priorityPatients.filter(p => state.unit === "all" || p.unit === state.unit).slice(0, 5)),
-      foot: "Daftar penuh tersedia untuk kepala unit sesuai RBAC." })}`)}`;
+      foot: "Daftar penuh tersedia untuk kepala unit sesuai RBAC." })}`)}
+  ${renderEquipment()}`;
 }
 
 function waterfall(components, total, target) {
@@ -717,7 +788,8 @@ function renderKeuangan() {
       { title: "Rekonsiliasi 34 klaim kode INA-CBG", desc: "target selesai 5 Des", badge: badge("crit", "PRIORITAS") },
       { title: "Lengkapi 22 dokumen klaim tertahan", desc: "verifikasi berkas", badge: badge("warn", "PANTAU") },
       { title: "Collection rate 94,2%", desc: "di atas 90%, di bawah target 95%", badge: badge("ok", "STABIL") }]),
-      foot: "Denial rate 8,2% setara 84 dari 1.024 klaim bulan ini." })}`)}`;
+      foot: "Denial rate 8,2% setara 84 dari 1.024 klaim bulan ini." })}`)}
+  ${precheckCards()}`;
 }
 
 function renderSDM() {
@@ -1022,6 +1094,11 @@ function placeChat() {
 function currentValue(k) {
   const kpi = execKpis.find(x => x.k === k);
   if (kpi) return { value: `${fmtAuto(kpi.value)} ${kpi.unit}`, status: kpi.status };
+  if (k === "PRAVER") { const c = precheckFor(); return { value: `${fmt(c.rate, 1)} % lolos`, status: "na" }; }
+  if (["ALATKRIT", "KALIB", "COLDCHAIN"].includes(k)) { const e = equipmentFor();
+    if (k === "ALATKRIT") return { value: e.readyPct == null ? "–" : `${fmt(e.readyPct, 1)} %`, status: e.readyPct == null ? "na" : statusFromTarget("≥" + e.readyTarget, e.readyPct) };
+    if (k === "KALIB") return { value: `${fmt(e.calibPct, 1)} %`, status: "na" };
+    return { value: `${e.excursions} kejadian`, status: e.excursions ? "warn" : "ok" }; }
   const u = unsetTargets.find(x => x.k === k);
   if (u) return { value: `${u.value} ${u.unit}`, status: "na" };
   return null;
@@ -1076,6 +1153,13 @@ function exportCsv() {
   rows.push(["Keuangan", "Pendapatan", n(finance.revenue), "miliar", n(finance.revenueTarget), "WATCH"]);
   rows.push(["Keuangan", "AR days", n(finance.arDays), "hari", "≤" + finance.arTarget, "WATCH"]);
   rows.push(["Keuangan", "Denial klaim", n(finance.denialRate), "%", "≤" + n(finance.denialTarget), "WATCH"]);
+  { const c = precheckFor(); rows.push(["Keuangan", "Pra-verifikasi klaim lolos (ValidAI, mock)", n(fmt(c.rate, 1)), "%", "belum ditetapkan", statusLabel("na")]);
+    c.categories.forEach(x => rows.push(["Pra-verifikasi klaim", "Temuan: " + x.label, x.n, "temuan", "", ""])); }
+  { const e = equipmentFor();
+    rows.push(["Alat & utilitas", "Alat kritis siap (ESOPT, mock)", e.readyPct == null ? "" : n(fmt(e.readyPct, 1)), "%", "≥" + e.readyTarget, e.readyPct == null ? statusLabel("na") : statusLabel(statusFromTarget("≥" + e.readyTarget, e.readyPct))]);
+    rows.push(["Alat & utilitas", "Kepatuhan kalibrasi", n(fmt(e.calibPct, 1)), "%", "belum ditetapkan", statusLabel("na")]);
+    rows.push(["Alat & utilitas", "Excursion cold chain", e.excursions, "kejadian", "0", statusLabel(e.excursions ? "warn" : "ok")]);
+    e.utilities.forEach(u => rows.push(["Utilitas", u.name, u.value, "", "normal", statusLabel(u.st)])); }
   rows.push(["SDM", "Kepuasan staf", n(hr.satisfaction), "/100", "≥" + hr.satisfactionTarget, "WATCH"]);
   rows.push(["Identitas", "Periode", `${P().label} (${P().range})`, "", "", ""]);
   rows.push(["Identitas", "Diekspor", new Date().toLocaleString("id-ID"), "", "", ""]);

@@ -14,7 +14,7 @@ const RS_INFO = {
   period: "November 2026",
   updated: "24 Nov 2026 · 07:42",
   owner: "Direktorat Pelayanan Medis & Keperawatan",
-  sources: "SIRS Online · SIMAR · Klaim BPJS · Billing internal"
+  sources: "SIRS Online · SIMAR · Klaim BPJS · Billing internal · ValidAI & ESOPT (mock)"
 };
 
 /* ---------- KPI eksekutif: 6 angka RS ---------- */
@@ -289,6 +289,60 @@ const priorityPatients = [
 ];
 
 /* ---------- Definisi & dasar target (untuk panel bukti) ---------- */
+/* ---------- Pra-verifikasi berkas klaim (ValidAI; belum terintegrasi) ----------
+   Field mengikuti model submission ValidAI: status Complete/Incomplete,
+   total_items, verified_items, 4 kategori temuan, 10 butir checklist. */
+const claimPrecheck = {
+  source:"ValidAI (belum terintegrasi)",
+  verified:412, complete:298, avgFixItems:3.4,
+  categories:[
+    { label:"Coding medis", n:96 },
+    { label:"Aturan klinis", n:58 },
+    { label:"BA kesepakatan", n:41 },
+    { label:"Permenkes", n:23 }
+  ],
+  checklistFails:[
+    { label:"INA-CBG / e-klaim", n:71 },
+    { label:"SEP & identitas", n:44 },
+    { label:"Resume medis", n:38 },
+    { label:"Kewajaran LOS", n:27 },
+    { label:"Diagnosis vs terapi", n:19 }
+  ]
+};
+
+/* ---------- Kesiapan alat medis & utilitas kritis (PRD ESOPT FR-HC; belum terintegrasi) ----------
+   Status kesiapan ESOPT dipetakan: READY → siap; READY_WITH_WARNING / WAITING_* /
+   MISSING_* → peringatan; NOT_READY / QUARANTINED / OUT_OF_SERVICE → tidak siap. */
+const equipment = {
+  source:"ESOPT Healthcare (belum terintegrasi)",
+  readyTarget:95,
+  units:[
+    { unit:"ICU", total:38, ready:31, warn:4, down:3 },
+    { unit:"Kamar Operasi", total:30, ready:27, warn:2, down:1 },
+    { unit:"IGD (holding)", total:26, ready:22, warn:3, down:1 },
+    { unit:"Rawat Inap A", total:24, ready:22, warn:1, down:1 },
+    { unit:"HCU", total:20, ready:18, warn:2, down:0 },
+    { unit:"Perinatologi", total:16, ready:15, warn:1, down:0 }
+  ],
+  readySeries:[86.4,87.1,85.9,88.0,87.3,86.8,87.7],
+  readyLabels:["Mei","Jun","Jul","Agu","Sep","Okt","Nov"],
+  calibration:{ inPeriod:412, required:448 },
+  calibrationDue:[
+    { name:"Ventilator ICU-03", unit:"ICU", due:"lewat 4 hari · dikarantina", st:"crit" },
+    { name:"Defibrilator IGD-01", unit:"IGD (holding)", due:"jatuh tempo 3 hari lagi", st:"warn" },
+    { name:"Syringe pump HCU-07", unit:"HCU", due:"jatuh tempo 9 hari lagi", st:"warn" },
+    { name:"Inkubator Perina-02", unit:"Perinatologi", due:"jatuh tempo 21 hari lagi", st:"ok" }
+  ],
+  coldChain:{ storages:14, excursions:3, note:"Kulkas vaksin farmasi rawat jalan: pintu terbuka >5 menit (2×); 1× suhu 9,1 °C selama 22 menit." },
+  utilities:[
+    { name:"Oksigen sentral", value:"Tekanan 4,2 bar · tangki 68%", st:"ok", age:"1 mnt" },
+    { name:"Vakum medis", value:"−0,6 bar · 2 pompa aktif", st:"ok", age:"1 mnt" },
+    { name:"Genset 1 & 2", value:"Siaga · BBM 74% (± 31 jam)", st:"ok", age:"5 mnt" },
+    { name:"UPS Kamar Operasi & ICU", value:"Baterai 61% · 1 modul fault", st:"warn", age:"2 mnt" },
+    { name:"Cold chain farmasi", value:"14 unit · 1 di luar profil", st:"warn", age:"3 mnt" }
+  ]
+};
+
 const definitions = {
   BOR:{ name:"Bed Occupancy Rate", formula:"Hari perawatan ÷ (TT × hari periode) × 100%",
         target:"60–85%", basis:"Praktik Depkes 2005 · SIRS RL 1.2", source:"Sensor bed + SIMRS" },
@@ -317,7 +371,15 @@ const definitions = {
   ANTRIFAR:{ name:"Waktu tunggu obat jadi", formula:"Median resep diterima → obat diserahkan",
           target:null, basis:"Belum verifikasi — acuan SPM belum dicocokkan", source:"SIMRS farmasi" },
   KLAIM:{ name:"Klaim & piutang", formula:"AR days = piutang ÷ pendapatan harian rata-rata",
-          target:"≤30 hari", basis:"Target internal direksi", source:"Billing + klaim BPJS" }
+          target:"≤30 hari", basis:"Target internal direksi", source:"Billing + klaim BPJS" },
+  PRAVER:{ name:"Pra-verifikasi berkas klaim", formula:"Berkas Complete ÷ berkas yang diverifikasi ValidAI × 100%",
+          target:null, basis:"Belum verifikasi — aturan Complete/Incomplete ValidAI belum diketahui", source:"ValidAI (belum terintegrasi; data mock)" },
+  ALATKRIT:{ name:"Kesiapan alat medis kritis", formula:"Alat kritis berstatus READY ÷ total alat kritis × 100%",
+          target:"≥95%", basis:"Internal — usulan, perlu ditetapkan RS", source:"ESOPT Healthcare FR-HC-006/017 (belum terintegrasi; data mock)" },
+  KALIB:{ name:"Kepatuhan kalibrasi alat", formula:"Alat dalam masa kalibrasi ÷ alat wajib kalibrasi × 100%",
+          target:null, basis:"Belum verifikasi — rujukan akreditasi belum diperiksa", source:"ESOPT Healthcare FR-HC-013 (data mock)" },
+  COLDCHAIN:{ name:"Excursion cold chain", formula:"Kejadian suhu/pintu/daya di luar profil penyimpanan per periode",
+          target:"0 kejadian", basis:"Internal", source:"ESOPT Healthcare FR-HC-021/022 (data mock)" }
 };
 
 /* ---------- Indikator tanpa target terverifikasi (tampil abu-abu, bukan RAG) ---------- */
@@ -336,12 +398,14 @@ const quickPrompts = {
     { q:"Kenapa BOR 87% dan apa tindakannya?", t:"BOR 87% — kenapa?" },
     { q:"Bagaimana status 13 INM bulan ini?", t:"Status 13 INM" },
     { q:"Ringkas kinerja keuangan November", t:"Ringkas keuangan" },
-    { q:"Domain mana yang paling berisiko?", t:"Domain paling berisiko" }
+    { q:"Domain mana yang paling berisiko?", t:"Domain paling berisiko" },
+    { q:"Bagaimana pra-verifikasi berkas klaim?", t:"Pra-verifikasi klaim" }
   ],
   unit:[
     { q:"Bagaimana kapasitas ICU dan HCU?", t:"Kapasitas ICU" },
     { q:"Unit mana yang butuh perhatian shift ini?", t:"Unit prioritas" },
-    { q:"Berapa rencana pulang hari ini?", t:"Rencana pulang" }
+    { q:"Berapa rencana pulang hari ini?", t:"Rencana pulang" },
+    { q:"Bagaimana kesiapan alat kritis dan kalibrasi?", t:"Kesiapan alat" }
   ],
   mutu:[
     { q:"Bagaimana kepatuhan 13 INM bulan ini?", t:"Status 13 INM" },
@@ -351,7 +415,18 @@ const quickPrompts = {
 };
 
 const chatKnowledge = [
-  { match:/bor|okupansi|kapasitas|bed|icu/i, act:()=>{
+  { match:/pra-?verifikasi|validai|berkas klaim|checklist klaim/i, act:()=>{
+      const c=claimPrecheck, rate=c.complete/c.verified*100;
+      return { lede:`${fmt(rate,1)}% berkas lolos pra-verifikasi`,
+        body:`${c.complete} dari ${c.verified} berkas yang diperiksa ValidAI berstatus Complete; rata-rata ${fmt(c.avgFixItems,1)} butir perlu diperbaiki per berkas. Temuan terbanyak di <b>${c.categories[0].label}</b> (${c.categories[0].n}) dan butir paling sering gagal <b>${c.checklistFails[0].label}</b>, sejalan dengan penyebab denial terbesar (kode INA-CBG tidak sesuai). Catatan: ValidAI belum terintegrasi, angka ini mock dan aturan Complete/Incomplete-nya belum diketahui.`,
+        evidence:["PRAVER","KLAIM"], acts:[{t:"Buka Keuangan",f:()=>go("keuangan")}] };
+  }},
+  { match:/\balat\b|kalibrasi|cold ?chain|gas medis|oksigen|genset|\bups\b|utilitas/i, act:()=>{
+      const e=equipment, tot=e.units.reduce((a,u)=>a+u.total,0), rdy=e.units.reduce((a,u)=>a+u.ready,0), down=e.units.filter(u=>u.down).map(u=>`${u.unit} ${u.down}`).join(", ");
+      return { lede:`${fmt(rdy/tot*100,1)}% alat kritis siap pakai — di bawah target ≥${e.readyTarget}%`,
+        body:`${rdy} dari ${tot} alat kritis berstatus READY. Tidak siap: ${down}. Kepatuhan kalibrasi ${fmt(e.calibration.inPeriod/e.calibration.required*100,1)}%; <b>${e.calibrationDue[0].name}</b> ${e.calibrationDue[0].due}. Utilitas: UPS Kamar Operasi & ICU 1 modul fault, cold chain farmasi ${e.coldChain.excursions} excursion bulan ini; oksigen, vakum, dan genset normal. Angka mock dari model ESOPT Healthcare.`,
+        evidence:["ALATKRIT","KALIB","COLDCHAIN"], acts:[{t:"Buka Operasional",f:()=>go("operasional")}] };
+  }},  { match:/bor|okupansi|kapasitas|bed|icu/i, act:()=>{
       const u=units.filter(x=>x.status!=="ok").map(x=>`${x.name} ${x.bor}%`).join(", ");
       return { lede:`BOR ${execKpis[0].value}% — di atas target 60–85%`,
         body:`Kapasitas tertekan: ${u}. ${capacity.occupied} dari ${capacity.totalBeds} bed terisi; ICU ${capacity.icu.occupied}/${capacity.icu.total}. IGD menahan <b>${capacity.igdWaiting} pasien</b> menunggu bed, dan ${capacity.dischargesPlanned-capacity.dischargesDone} dari ${capacity.dischargesPlanned} rencana pulang belum tuntas.`,
