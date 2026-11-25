@@ -124,6 +124,7 @@ function col(token, alpha = 1) {
   return alpha === 1 ? `rgb(${r},${g},${b})` : `rgba(${r},${g},${b},${alpha})`;
 }
 const isDark = () => document.documentElement.classList.contains("dark");
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
 const C = {
   main: () => col("--chart-1"), soft: () => col("--chart-1"), ok: () => col("--chart-2"), warn: () => col("--chart-3"), mid: () => col("--chart-4"), deep: () => col("--chart-5"),
   crit: () => col("--destructive"), muted: () => col("--muted-foreground"), border: () => col("--border"), fg: () => col("--foreground")
@@ -139,7 +140,7 @@ function merge(a, b) {
 function baseOpts(type, height) {
   return {
     chart: { type, height, fontFamily: "inherit", toolbar: { show: false }, zoom: { enabled: false },
-      animations: { enabled: false }, background: "transparent", foreColor: C.muted(), parentHeightOffset: 0 },
+      animations: { enabled: !reduceMotion.matches, speed: 450, animateGradually: { enabled: false }, dynamicAnimation: { enabled: false } }, background: "transparent", foreColor: C.muted(), parentHeightOffset: 0 },
     theme: { mode: isDark() ? "dark" : "light" },
     grid: { borderColor: C.border(), strokeDashArray: 4, padding: { left: 4, right: 8 } },
     dataLabels: { enabled: false },
@@ -308,7 +309,7 @@ function metricTile(k) {
   const delta = scoped
     ? `<span>Unit · periode berjalan</span>`
     : `<span class="${deltaGood(d) ? "text-foreground" : "text-destructive"} font-medium">${deltaText(d.delta)}</span><span>vs Okt</span>`;
-  return `<button type="button" class="card min-w-0 gap-3 py-4 text-left transition-colors hover:bg-muted/50 focus-visible:outline-2 focus-visible:outline-ring" data-k="${d.k}" aria-label="${esc(d.name)}: ${fmtAuto(d.value)} ${esc(d.unit)}. Klik untuk definisi.">
+  return `<button type="button" class="card min-w-0 gap-3 py-4 text-left transition hover:-translate-y-0.5 hover:bg-muted/50 hover:shadow-md motion-reduce:transition-none motion-reduce:hover:translate-y-0 focus-visible:outline-2 focus-visible:outline-ring" data-k="${d.k}" aria-label="${esc(d.name)}: ${fmtAuto(d.value)} ${esc(d.unit)}. Klik untuk definisi.">
     <header class="flex items-start justify-between gap-2 px-4">
       <span class="text-sm font-medium leading-snug">${d.k} · ${esc(d.name)}</span>${badge(d.status)}
     </header>
@@ -327,7 +328,7 @@ function metricTile(k) {
 function simpleMetric({ label, value, unit = "", target, status, note, k }) {
   const tag = k ? "button" : "article";
   const attrs = k ? ` type="button" data-k="${esc(k)}" aria-label="${esc(label)}. Klik untuk definisi."` : "";
-  return `<${tag} class="card min-w-0 gap-2 py-4 text-left ${k ? "transition-colors hover:bg-muted/50" : ""}"${attrs}>
+  return `<${tag} class="card min-w-0 gap-2 py-4 text-left ${k ? "transition hover:-translate-y-0.5 hover:bg-muted/50 hover:shadow-md motion-reduce:transition-none motion-reduce:hover:translate-y-0" : ""}"${attrs}>
     <header class="flex items-start justify-between gap-2 px-4"><span class="text-sm font-medium leading-snug">${esc(label)}</span>${badge(status)}</header>
     <section class="flex flex-col gap-1 px-4">
       <strong class="text-2xl font-semibold tracking-tight tabular-nums">${value}<span class="ml-1 text-sm font-normal text-muted-foreground">${esc(unit)}</span></strong>
@@ -369,7 +370,7 @@ const domainRisk = [
 ];
 function itemList(rows) {
   return `<div class="flex flex-col gap-2">${rows.map(r => `
-    <${r.go ? `button type="button" data-go="${r.go}"` : "div"} class="item text-left" data-variant="outline" data-size="sm">
+    <${r.go ? `button type="button" data-go="${r.go}"` : "div"} class="item text-left ${r.go ? "transition-colors hover:bg-muted/50" : ""}" data-variant="outline" data-size="sm">
       <section class="min-w-0"><h3>${esc(r.title)}</h3>${r.desc ? `<p class="line-clamp-none">${esc(r.desc)}</p>` : ""}</section>
       <aside>${r.badge}</aside>
     </${r.go ? "button" : "div"}>`).join("")}</div>`;
@@ -834,7 +835,16 @@ const VIEWS = {
   sdm: renderSDM, kepatuhan: renderKepatuhan, strategi: renderStrategi, docs: renderDocs
 };
 
-function render() {
+let firstRender = true;
+function render({ animate = true } = {}) {
+  // Perpindahan halaman: crossfade View Transitions API (bawaan browser, 0 KB);
+  // dilewati bila browser belum mendukung atau pengguna memilih "kurangi gerakan".
+  const swap = () => renderNow();
+  if (animate && !firstRender && document.startViewTransition && !reduceMotion.matches) document.startViewTransition(swap);
+  else swap();
+  firstRender = false;
+}
+function renderNow() {
   $$("#navList a").forEach(a => a.dataset.tab === state.tab ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"));
   const tab = TABS.find(t => t.id === state.tab);
   $("#pageTitle").textContent = tab.label;
@@ -846,7 +856,7 @@ function render() {
 }
 function remountCharts() {
   // Tema berganti: render ulang supaya warna token yang baru terbaca.
-  render();
+  render({ animate: false });
 }
 
 /* ================= asisten data ================= */
