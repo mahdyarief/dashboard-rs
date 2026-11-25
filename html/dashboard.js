@@ -58,8 +58,8 @@ const icon = (name, extra = 'data-icon="inline-start"') => svg(ICON[name], extra
 
 /* ================= status → varian badge Basecoat ================= */
 const STATUS = {
-  ok:      { label:"ON-TARGET", variant:"outline", icon:"check" },
-  warn:    { label:"WATCH", variant:"secondary", icon:"alert" },
+  ok:      { label:"ON-TARGET", variant:"outline", icon:"check", cls:"border-chart-2/50 bg-chart-2/10 *:text-chart-2" },
+  warn:    { label:"WATCH", variant:"outline", icon:"alert", cls:"border-chart-3/70 bg-chart-3/20 *:text-chart-3" },
   crit:    { label:"BREACH", variant:"destructive", icon:"x" },
   na:      { label:"TARGET BELUM DITETAPKAN", variant:"outline", icon:"minus" },
   neutral: { label:"INFO", variant:"outline", icon:"info" }
@@ -67,7 +67,7 @@ const STATUS = {
 function statusLabel(s) { return (STATUS[s] || STATUS.neutral).label; }
 function badge(status, label) {
   const s = STATUS[status] || STATUS.neutral;
-  return `<span class="badge shrink-0" data-variant="${s.variant}">${icon(s.icon)}${esc(label || s.label)}</span>`;
+  return `<span class="badge shrink-0 ${s.cls || ""}" data-variant="${s.variant}">${icon(s.icon)}${esc(label || s.label)}</span>`;
 }
 const riskLabel = r => r === "crit" ? "KRITIS" : r === "warn" ? "PANTAU" : "STABIL";
 
@@ -125,7 +125,7 @@ function col(token, alpha = 1) {
 }
 const isDark = () => document.documentElement.classList.contains("dark");
 const C = {
-  main: () => col("--chart-2"), soft: () => col("--chart-1"), mid: () => col("--chart-3"), deep: () => col("--chart-5"),
+  main: () => col("--chart-1"), soft: () => col("--chart-1"), ok: () => col("--chart-2"), warn: () => col("--chart-3"), mid: () => col("--chart-4"), deep: () => col("--chart-5"),
   crit: () => col("--destructive"), muted: () => col("--muted-foreground"), border: () => col("--border"), fg: () => col("--foreground")
 };
 
@@ -235,7 +235,7 @@ function hBars({ rows, unit = "", label, highlight = [], highlightColor = "crit"
   const hgt = height || Math.max(160, rows.length * 38 + 40);
   return chart(label, h => merge(baseOpts("bar", h), {
     series: [{ name: label, data: rows.map(r => r.v) }],
-    colors: rows.map((_, i) => (highlight.includes(i) ? (highlightColor === "crit" ? C.crit() : C.deep()) : C.main())),
+    colors: rows.map((_, i) => (highlight.includes(i) ? (highlightColor === "crit" ? C.crit() : C.warn()) : C.main())),
     plotOptions: { bar: { horizontal: true, distributed: true, barHeight: "62%", borderRadius: 3, dataLabels: { position: "top" } } },
     dataLabels: { enabled: true, formatter: v => fmt(v, dec) + unit, offsetX: 26, style: { colors: [C.fg()], fontSize: "12px", fontWeight: 500 } },
     xaxis: { categories: rows.map(r => r.label), min: 0, max: Math.max(...rows.map(r => r.v)) * 1.25, labels: { formatter: v => fmt(v, dec) } },
@@ -248,7 +248,7 @@ function hBars({ rows, unit = "", label, highlight = [], highlightColor = "crit"
 function gauge({ value, target, max = 100, unit = "", label }) {
   return chart(`${label} ${fmt(value, 1)}${unit}, target ${target}`, h => merge(baseOpts("radialBar", h), {
     series: [Math.round((value / max) * 1000) / 10],
-    colors: [value >= target ? C.main() : C.crit()],
+    colors: [value >= target ? C.ok() : C.crit()],
     plotOptions: { radialBar: { startAngle: -100, endAngle: 100, hollow: { size: "62%" },
       track: { background: col("--muted"), strokeWidth: "100%" },
       dataLabels: { name: { show: true, offsetY: 22, fontSize: "12px", color: C.muted() },
@@ -263,7 +263,7 @@ function heatmap({ rows, cols, ranges, unit = "", label, height }) {
   return chart(label, h => merge(baseOpts("heatmap", h), {
     series: rows.slice().reverse().map(r => ({ name: r.label, data: r.v.map((y, i) => ({ x: cols[i], y })) })),
     plotOptions: { heatmap: { radius: 3, enableShades: false, colorScale: { ranges: ranges() } } },
-    dataLabels: { enabled: true, style: { fontSize: "11px", fontWeight: 500 } },
+    dataLabels: { enabled: true, style: { fontSize: "11px", fontWeight: 600, colors: [isDark() ? col("--background") : col("--foreground")] } },
     stroke: { width: 2, colors: [col("--card")] },
     xaxis: { labels: { rotate: 0 }, axisBorder: { show: false }, axisTicks: { show: false } },
     tooltip: { y: { formatter: v => fmt(v) + unit } },
@@ -420,7 +420,7 @@ function heatTable() {
     [{ t:"Unit" }, ...safetyIndicators.map(i => ({ t:`${esc(i.name)}<div class="text-xs font-normal text-muted-foreground">${esc(i.target)}</div>` }))],
     rows.map(r => ({ cells: [`<span class="font-medium">${esc(r.unit)}</span>`, ...safetyIndicators.map(i => {
       const v = r[i.key], st = cellStatus(i, v);
-      return `<span class="badge tabular-nums" data-variant="${STATUS[st].variant}" title="${esc(i.name)} ${fmt(v, 1)}${i.unit} · target ${esc(i.target)} · ${statusLabel(st)}">${icon(STATUS[st].icon)}${fmtAuto(v)}</span>`;
+      return `<span class="badge tabular-nums ${STATUS[st].cls || ""}" data-variant="${STATUS[st].variant}" title="${esc(i.name)} ${fmt(v, 1)}${i.unit} · target ${esc(i.target)} · ${statusLabel(st)}">${icon(STATUS[st].icon)}${fmtAuto(v)}</span>`;
     })] })));
 }
 
@@ -454,7 +454,7 @@ function boxplot() {
       { name: "Outlier", type: "scatter", data: d.groups.flatMap(g => (g.out || []).map(o => ({ x: short(g.name), y: o }))) }
     ],
     colors: [C.main(), C.crit()],
-    plotOptions: { boxPlot: { colors: { upper: C.soft(), lower: C.mid() } }, bar: { columnWidth: "45%" } },
+    plotOptions: { boxPlot: { colors: { upper: col("--chart-1", 0.55), lower: C.main() } }, bar: { columnWidth: "45%" } },
     stroke: { colors: [C.fg()], width: 1 },
     markers: { size: 5 },
     xaxis: { type: "category", labels: { rotate: 0, hideOverlappingLabels: false, style: { fontSize: "11px" } } },
@@ -522,7 +522,7 @@ function renderAkses() {
   ${card({ title: "Kepadatan waktu tunggu jam × hari", sub: "p90 menit · Sen–Min",
     body: `<div class="overflow-x-auto"><div class="min-w-xl">${heatmap({
       rows: accessDay.map((d, i) => ({ label: d, v: a.byDayHour[i] })), cols: accessHours.map(h => h + ":00"), unit: " mnt", label: "Peta panas waktu tunggu",
-      ranges: () => [{ from: 0, to: 30, color: C.soft(), name: "≤30 menit" }, { from: 30.01, to: 55, color: C.mid(), name: "30–55 menit" }, { from: 55.01, to: 999, color: C.crit(), name: ">55 menit" }] })}</div></div>`,
+      ranges: () => [{ from: 0, to: 30, color: C.ok(), name: "≤30 menit" }, { from: 30.01, to: 55, color: C.warn(), name: "30–55 menit" }, { from: 55.01, to: 999, color: C.crit(), name: ">55 menit" }] })}</div></div>`,
     foot: "Puncak Selasa–Jumat pukul 09–11; Senin pagi ramai karena rujukan akhir pekan." })}
   ${card({ title: "Titik breach yang perlu tindakan", sub: `${a.breaches.length} item`,
     body: table([{ t:"Unit" }, { t:"Indikator", wrap:true }, { t:"Capaian", num:true }, { t:"Target", num:true }, { t:"Pemilik" }],
@@ -535,7 +535,7 @@ function scatterBj() {
   const short = n => n.replace("Rawat Inap ", "RI ").replace(" / Paviliun", "");
   return chart("Sebaran BOR dan ALOS per unit; zona efisiensi BOR 60–85% dan ALOS 6–9 hari", h => merge(baseOpts("scatter", h), {
     series: Object.entries(groups).map(([st, name]) => ({ name, data: units.filter(u => u.status === st).map(u => ({ x: u.bor, y: u.alos, name: short(u.name) })) })),
-    colors: [C.main(), C.deep(), C.crit()],
+    colors: [C.ok(), C.warn(), C.crit()],
     markers: { size: 8, strokeWidth: 2, strokeColors: col("--card") },
     dataLabels: { enabled: true, offsetY: -10, formatter: (v, o) => o.w.config.series[o.seriesIndex].data[o.dataPointIndex].name,
       background: { enabled: false }, style: { fontSize: "11px", fontWeight: 500, colors: [C.fg()] } },
@@ -653,7 +653,7 @@ function renderSDM() {
     ${card({ title: "Tren turnover", sub: "% per tahun", body: trendChart({ series: [{ name: "Turnover", data: hr.turnoverSeries }], labels: hr.turnoverLabels, target: hr.turnoverTarget, unit: "%", height: 260 }) })}`)}
   ${card({ title: "Kehadiran perawat unit × shift", sub: "% shift terisi",
     body: heatmap({ rows: hr.shiftHeat.units.map(u => ({ label: u.unit, v: u.v })), cols: hr.shiftHeat.shifts, unit: "%", label: "Peta panas kehadiran perawat",
-      ranges: () => [{ from: 0, to: 79.99, color: C.crit(), name: "<80%" }, { from: 80, to: 89.99, color: C.mid(), name: "80–90%" }, { from: 90, to: 100, color: C.soft(), name: "≥90%" }] }),
+      ranges: () => [{ from: 0, to: 79.99, color: C.crit(), name: "<80%" }, { from: 80, to: 89.99, color: C.warn(), name: "80–90%" }, { from: 90, to: 100, color: C.ok(), name: "≥90%" }] }),
     foot: "Shift malam IGD dan Rawat Inap C paling rendah — tekanan absensi tertinggi." })}
   ${grid("lg:grid-cols-2", `
     ${card({ title: "Komposisi tenaga", sub: `${hr.headcount.reduce((a, b) => a + b.n, 0)} orang`,
