@@ -359,7 +359,7 @@ function sectionHead(title, meta, right = "") {
   </div>`;
 }
 function table(head, rows, empty = "Tidak ada data.") {
-  return `<div class="table-container"><table class="table">
+  return `<div class="table-container scrollbar scrollbar-thin"><table class="table">
     <thead><tr>${head.map(h => `<th class="${h.num ? "text-right" : ""}">${h.t}</th>`).join("")}</tr></thead>
     <tbody>${rows.length ? rows.map(r => `<tr${r.attrs || ""}>${r.cells.map((c, i) => `<td class="${head[i].num ? "text-right tabular-nums" : ""} ${head[i].wrap ? "min-w-48 whitespace-normal" : ""}">${c}</td>`).join("")}</tr>`).join("")
       : `<tr><td colspan="${head.length}" class="text-muted-foreground">${empty}</td></tr>`}</tbody>
@@ -592,7 +592,7 @@ function renderAkses() {
     <div class="min-w-0 2xl:col-span-2">${card({ title: "Kepatuhan akses", sub: "bulan berjalan", body: statusTable(rows),
       foot: "SC emergensi perlu alur konsul anestesi paralel." })}</div>`)}
   ${card({ title: "Kepadatan waktu tunggu jam × hari", sub: "p90 menit · Sen–Min",
-    body: `<div class="overflow-x-auto"><div class="min-w-xl">${heatmap({
+    body: `<div class="scrollbar scrollbar-thin overflow-x-auto"><div class="min-w-xl">${heatmap({
       rows: accessDay.map((d, i) => ({ label: d, v: a.byDayHour[i] })), cols: accessHours.map(h => h + ":00"), unit: " mnt", label: "Peta panas waktu tunggu",
       ranges: () => [{ from: 0, to: 30, color: C.ok(), name: "≤30 menit" }, { from: 30.01, to: 55, color: C.warn(), name: "30–55 menit" }, { from: 55.01, to: 999, color: C.crit(), name: ">55 menit" }] })}</div></div>`,
     foot: "Puncak Selasa–Jumat pukul 09–11; Senin pagi ramai karena rujukan akhir pekan." })}
