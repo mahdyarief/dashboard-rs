@@ -413,7 +413,7 @@ function simpleMetric({ label, value, unit = "", target, status, note, k }) {
 
 function alertItems(limit = 6) {
   return `<div class="flex flex-col divide-y divide-border">${alerts.slice(0, limit).map(a => `
-    <div class="item rounded-none px-0">
+    <div class="item rounded-none border-x-0 px-0">
       <section class="min-w-0">
         <h3 class="flex flex-wrap items-center gap-2">${esc(a.title)}</h3>
         <p class="line-clamp-none">${esc(a.detail)}</p>
@@ -443,7 +443,7 @@ const domainRisk = [
 ];
 function itemList(rows) {
   return `<div class="flex flex-col divide-y divide-border">${rows.map(r => `
-    <${r.go ? `button type="button" data-go="${r.go}"` : r.jump ? `button type="button" data-docjump="${r.jump}"` : r.k ? `button type="button" data-k="${esc(r.k)}"` : "div"} class="item rounded-none px-1 text-left ${r.go || r.jump || r.k ? "transition-colors hover:bg-muted/50" : ""}" data-size="sm">
+    <${r.go ? `button type="button" data-go="${r.go}"` : r.jump ? `button type="button" data-docjump="${r.jump}"` : r.k ? `button type="button" data-k="${esc(r.k)}"` : "div"} class="item rounded-none border-x-0 px-1 text-left ${r.go || r.jump || r.k ? "transition-colors hover:bg-muted/50" : ""}" data-size="sm">
       <section class="min-w-0 basis-48"><h3 class="text-balance">${esc(r.title)}</h3>${r.desc ? `<p class="line-clamp-none">${esc(r.desc)}</p>` : ""}</section>
       <aside>${r.badge}</aside>
     </${r.go || r.jump || r.k ? "button" : "div"}>`).join("")}</div>`;
@@ -916,7 +916,7 @@ function renderKepatuhan() {
       ${card({ title: "Indikator SIRS", sub: "RL 1.2 & 3.1", body: table([{ t:"Indikator" }, { t:"Nilai", num:true }, { t:"Target", num:true }, { t:"Status" }],
         sirs.map(s => ({ cells: [`<span class="font-medium">${esc(s.k)}</span>`, esc(String(s.value)), esc(s.target), badge(s.status)] }))) })}
       ${card({ title: "Tenggat pelaporan", sub: "terdekat", body: `<div class="flex flex-col divide-y divide-border">${compliance.deadlines.map(d => `
-        <div class="item rounded-none px-0" data-size="sm">
+        <div class="item rounded-none border-x-0 px-0" data-size="sm">
           <figure class="flex size-10 flex-col items-center justify-center rounded-md bg-muted text-center leading-none"><b class="text-sm">${esc(d.date.split(" ")[0])}</b><span class="text-xs text-muted-foreground">${esc(d.date.split(" ").slice(1).join(" "))}</span></figure>
           <section class="min-w-0"><h3>${esc(d.label)}</h3><p>${d.days} hari lagi</p></section>
           <aside>${d.status === "due" ? badge("crit", "Jatuh tempo") : badge("neutral", "Terjadwal")}</aside>
@@ -1183,6 +1183,26 @@ function placeChat() {
   }
 }
 
+/* Panel asisten di layar lebar bisa disembunyikan; pilihan diingat per peramban. */
+let chatHidden = false;
+try { chatHidden = localStorage.getItem("chatHidden") === "1"; } catch (e) {}
+function setChatHidden(hidden) {
+  chatHidden = hidden;
+  try { localStorage.setItem("chatHidden", hidden ? "1" : "0"); } catch (e) {}
+  $("#chatHome").classList.toggle("xl:block", !hidden);
+  $("#view").classList.toggle("xl:col-span-2", !hidden);
+  $("#view").classList.toggle("xl:col-span-3", hidden);
+  $("#chatOpen").classList.toggle("xl:hidden", !hidden);
+  $("#chatOpen").setAttribute("aria-expanded", String(wide.matches ? !hidden : $("#chatSheet").open));
+  $("#chatHide").setAttribute("aria-expanded", String(!hidden));
+  /* grafik menyesuaikan lebar kolom baru */
+  requestAnimationFrame(() => window.dispatchEvent(new Event("resize")));
+}
+function openChat() {
+  if (wide.matches) { if (chatHidden) setChatHidden(false); $("#inp").focus({ preventScroll: true }); }
+  else { placeChat(); $("#chatSheet").showModal(); }
+}
+
 /* ================= definisi (dialog Basecoat) ================= */
 function currentValue(k) {
   const kpi = execKpis.find(x => x.k === k);
@@ -1230,7 +1250,7 @@ function showDefinition(k) {
 function askAboutDefinition(k) {
   const d = definitions[k];
   if (!d) return;
-  if (!wide.matches) $("#chatSheet").showModal();
+  openChat();
   pushUser("Definisi " + k);
   pushBot({ lede: `${k} — ${d.name}`,
     body: `<b>Rumus:</b> ${esc(d.formula)}<br><b>Target:</b> ${esc(d.target || "belum ditetapkan")}<br><b>Dasar:</b> ${esc(d.basis)}<br><b>Sumber:</b> ${esc(d.source)}` });
@@ -1323,7 +1343,9 @@ function init() {
   const dlg = $("#defDialog");
   dlg.addEventListener("close", () => { dlg.dataset.state = "closed"; dlg.dataset.fsmState = "closed"; });
   $("#defAsk").addEventListener("click", () => { const k = $("#defAsk").dataset.defk; dlg.close(); askAboutDefinition(k); });
-  $("#chatOpen").addEventListener("click", () => { placeChat(); $("#chatSheet").showModal(); });
+  $("#chatOpen").addEventListener("click", openChat);
+  $("#chatHide").addEventListener("click", () => { setChatHidden(true); $("#chatOpen").focus(); });
+  if (chatHidden) setChatHidden(true);
   $$("dialog").forEach(d => d.addEventListener("click", e => {
     if (e.target === d || e.target.closest("[data-close]")) d.close();
   }));

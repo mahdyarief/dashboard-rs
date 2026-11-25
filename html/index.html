@@ -158,7 +158,7 @@
         <h1 class="truncate text-xl font-semibold leading-tight tracking-tight md:text-2xl" id="pageTitle">Ringkasan</h1>
         <p class="truncate text-xs text-muted-foreground"><span id="periodLabel">November 2026</span> · <span id="scopeChip">seluruh RS</span> · sinkron <span id="syncTime">24 Nov 07:42</span></p>
       </div>
-      <button type="button" class="btn xl:hidden" data-variant="outline" data-size="sm" id="chatOpen" aria-controls="chatSheet" aria-label="Buka asisten data">
+      <button type="button" class="btn xl:hidden" data-variant="outline" data-size="sm" id="chatOpen" aria-controls="chatSheet chatHome" aria-label="Tampilkan asisten data">
         <svg data-icon="inline-start" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         <span>Asisten</span>
       </button>
@@ -196,6 +196,9 @@
               <h2 class="text-base font-semibold">Asisten Data</h2>
               <p class="text-xs text-muted-foreground">Nusantara Agent · data indikator RS</p>
             </div>
+            <button type="button" class="btn ml-auto hidden xl:inline-flex" data-variant="ghost" data-size="icon-sm" id="chatHide" aria-controls="chatHome" aria-expanded="true" aria-label="Sembunyikan asisten data" title="Sembunyikan asisten">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18M10 9l3 3-3 3"/></svg>
+            </button>
           </div>
         </header>
         <section class="flex flex-col gap-3 px-4">
@@ -255,8 +258,8 @@
   </div>
 </dialog>
 
-<script src="./mock-data.js?v=20261125y"></script>
-<script src="./docs-content.js?v=20261125y"></script>
-<script src="./dashboard.js?v=20261125y"></script>
+<script src="./mock-data.js?v=20261125z"></script>
+<script src="./docs-content.js?v=20261125z"></script>
+<script src="./dashboard.js?v=20261125z"></script>
 </body>
 </html>
