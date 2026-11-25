@@ -1,0 +1,365 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-25T05:44:34.227Z",
+  "title": "Design System: RS Nusantara — Dashboard Manajemen",
+  "extensions": {
+    "colorMeta": {
+      "medical-blue": {
+        "role": "primary",
+        "displayName": "Biru Medis",
+        "canonical": "oklch(0.5 0.14 248)",
+        "tonalRamp": [
+          "oklch(0.2 0.056 248)",
+          "oklch(0.3 0.140 248)",
+          "oklch(0.4 0.140 248)",
+          "oklch(0.5 0.140 248)",
+          "oklch(0.62 0.140 248)",
+          "oklch(0.74 0.140 248)",
+          "oklch(0.86 0.140 248)",
+          "oklch(0.95 0.056 248)"
+        ]
+      },
+      "trend-blue": {
+        "role": "secondary",
+        "displayName": "Biru Tren",
+        "canonical": "oklch(0.58 0.14 245)",
+        "tonalRamp": [
+          "oklch(0.2 0.056 245)",
+          "oklch(0.3 0.140 245)",
+          "oklch(0.4 0.140 245)",
+          "oklch(0.5 0.140 245)",
+          "oklch(0.62 0.140 245)",
+          "oklch(0.74 0.140 245)",
+          "oklch(0.86 0.140 245)",
+          "oklch(0.95 0.056 245)"
+        ]
+      },
+      "comparison-teal": {
+        "role": "secondary",
+        "displayName": "Teal Klinis",
+        "canonical": "oklch(0.64 0.1 195)",
+        "tonalRamp": [
+          "oklch(0.2 0.040 195)",
+          "oklch(0.3 0.100 195)",
+          "oklch(0.4 0.100 195)",
+          "oklch(0.5 0.100 195)",
+          "oklch(0.62 0.100 195)",
+          "oklch(0.74 0.100 195)",
+          "oklch(0.86 0.100 195)",
+          "oklch(0.95 0.040 195)"
+        ]
+      },
+      "deep-navy": {
+        "role": "secondary",
+        "displayName": "Navy Dalam",
+        "canonical": "oklch(0.4 0.11 252)",
+        "tonalRamp": [
+          "oklch(0.2 0.044 252)",
+          "oklch(0.3 0.110 252)",
+          "oklch(0.4 0.110 252)",
+          "oklch(0.5 0.110 252)",
+          "oklch(0.62 0.110 252)",
+          "oklch(0.74 0.110 252)",
+          "oklch(0.86 0.110 252)",
+          "oklch(0.95 0.044 252)"
+        ]
+      },
+      "status-ok": {
+        "role": "tertiary",
+        "displayName": "Hijau Aman",
+        "canonical": "oklch(0.62 0.15 152)",
+        "tonalRamp": [
+          "oklch(0.2 0.060 152)",
+          "oklch(0.3 0.150 152)",
+          "oklch(0.4 0.150 152)",
+          "oklch(0.5 0.150 152)",
+          "oklch(0.62 0.150 152)",
+          "oklch(0.74 0.150 152)",
+          "oklch(0.86 0.150 152)",
+          "oklch(0.95 0.060 152)"
+        ]
+      },
+      "status-warn": {
+        "role": "tertiary",
+        "displayName": "Kuning Waspada",
+        "canonical": "oklch(0.8 0.15 82)",
+        "tonalRamp": [
+          "oklch(0.2 0.060 82)",
+          "oklch(0.3 0.150 82)",
+          "oklch(0.4 0.150 82)",
+          "oklch(0.5 0.150 82)",
+          "oklch(0.62 0.150 82)",
+          "oklch(0.74 0.150 82)",
+          "oklch(0.86 0.150 82)",
+          "oklch(0.95 0.060 82)"
+        ]
+      },
+      "breach-red": {
+        "role": "tertiary",
+        "displayName": "Merah Pelanggaran",
+        "canonical": "oklch(0.577 0.245 27.325)",
+        "tonalRamp": [
+          "oklch(0.2 0.080 27)",
+          "oklch(0.3 0.200 27)",
+          "oklch(0.4 0.200 27)",
+          "oklch(0.5 0.200 27)",
+          "oklch(0.62 0.200 27)",
+          "oklch(0.74 0.200 27)",
+          "oklch(0.86 0.200 27)",
+          "oklch(0.95 0.080 27)"
+        ]
+      },
+      "clinical-white": {
+        "role": "neutral",
+        "displayName": "Putih Klinis",
+        "canonical": "oklch(0.985 0.004 240)",
+        "tonalRamp": [
+          "oklch(0.2 0.005 240)",
+          "oklch(0.3 0.012 240)",
+          "oklch(0.4 0.012 240)",
+          "oklch(0.5 0.012 240)",
+          "oklch(0.62 0.012 240)",
+          "oklch(0.74 0.012 240)",
+          "oklch(0.86 0.012 240)",
+          "oklch(0.95 0.005 240)"
+        ]
+      },
+      "ward-mist": {
+        "role": "neutral",
+        "displayName": "Kabut Bangsal",
+        "canonical": "oklch(0.96 0.008 240)",
+        "tonalRamp": [
+          "oklch(0.2 0.005 240)",
+          "oklch(0.3 0.012 240)",
+          "oklch(0.4 0.012 240)",
+          "oklch(0.5 0.012 240)",
+          "oklch(0.62 0.012 240)",
+          "oklch(0.74 0.012 240)",
+          "oklch(0.86 0.012 240)",
+          "oklch(0.95 0.005 240)"
+        ]
+      },
+      "hairline": {
+        "role": "neutral",
+        "displayName": "Garis Rambut",
+        "canonical": "oklch(0.91 0.012 240)",
+        "tonalRamp": [
+          "oklch(0.2 0.006 240)",
+          "oklch(0.3 0.014 240)",
+          "oklch(0.4 0.014 240)",
+          "oklch(0.5 0.014 240)",
+          "oklch(0.62 0.014 240)",
+          "oklch(0.74 0.014 240)",
+          "oklch(0.86 0.014 240)",
+          "oklch(0.95 0.006 240)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Tinta",
+        "canonical": "oklch(0.145 0 0)",
+        "tonalRamp": [
+          "oklch(0.2 0.000 0)",
+          "oklch(0.3 0.000 0)",
+          "oklch(0.4 0.000 0)",
+          "oklch(0.5 0.000 0)",
+          "oklch(0.62 0.000 0)",
+          "oklch(0.74 0.000 0)",
+          "oklch(0.86 0.000 0)",
+          "oklch(0.95 0.000 0)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Judul halaman di header."
+      },
+      "section": {
+        "displayName": "Section",
+        "purpose": "Judul section."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Judul kartu."
+      },
+      "metric": {
+        "displayName": "Metric",
+        "purpose": "Angka KPI utama, tabular."
+      },
+      "metric-secondary": {
+        "displayName": "Metric Secondary",
+        "purpose": "Angka kartu metrik sederhana dan kapasitas."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Isi kartu, catatan, tabel."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Badge, meta, sumber data."
+      }
+    },
+    "shadows": [
+      {
+        "name": "hover-lift",
+        "value": "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
+        "purpose": "Hanya pada kartu yang dapat diklik saat hover, bersama translateY(-2px)."
+      },
+      {
+        "name": "card-ring",
+        "value": "0 0 0 1px color-mix(in oklab, var(--foreground) 10%, transparent)",
+        "purpose": "Batas kartu saat diam (Basecoat Nova)."
+      }
+    ],
+    "motion": [
+      {
+        "name": "control-transition",
+        "value": "100ms",
+        "purpose": "Transisi warna kontrol Basecoat."
+      },
+      {
+        "name": "card-hover",
+        "value": "150ms cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "Angkat kartu saat hover; mati di prefers-reduced-motion."
+      },
+      {
+        "name": "view-switch",
+        "value": "View Transitions API",
+        "purpose": "Pergantian tab dan periode; dilewati pada render pertama dan ganti tema."
+      },
+      {
+        "name": "chart-entry",
+        "value": "450ms",
+        "purpose": "Animasi masuk ApexCharts tanpa gradual."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md (sidebar)",
+        "value": "768px"
+      },
+      {
+        "name": "xl (rail asisten)",
+        "value": "1280px"
+      },
+      {
+        "name": "mobile test",
+        "value": "390px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Aksi utama dan periode aktif.",
+      "html": "<button class=\"ds-btn-primary\">Bulan ini</button>",
+      "css": ".ds-btn-primary{font-family:\"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif;font-size:14px;font-weight:500;height:32px;padding:0 12px;border:0;border-radius:10px;background:var(--primary, oklch(0.5 0.14 248));color:var(--primary-foreground, oklch(0.985 0.005 240));cursor:pointer;transition:background 100ms}.ds-btn-primary:hover{background:color-mix(in oklab, var(--primary, oklch(0.5 0.14 248)) 90%, black)}.ds-btn-primary:focus-visible{outline:2px solid var(--ring, oklch(0.62 0.13 245));outline-offset:2px}"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Aksi sekunder: tindak lanjut, ekspor.",
+      "html": "<button class=\"ds-btn-outline\">Lihat kapasitas</button>",
+      "css": ".ds-btn-outline{font-family:\"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif;font-size:14px;font-weight:500;height:32px;padding:0 12px;border:1px solid var(--border, oklch(0.91 0.012 240));border-radius:10px;background:var(--card, #fff);color:var(--foreground, oklch(0.145 0 0));cursor:pointer;transition:background 100ms}.ds-btn-outline:hover{background:var(--muted, oklch(0.96 0.008 240))}.ds-btn-outline:focus-visible{outline:2px solid var(--ring, oklch(0.62 0.13 245));outline-offset:2px}"
+    },
+    {
+      "name": "Select",
+      "kind": "input",
+      "refersTo": "select",
+      "description": "Filter unit dan peran di toolbar.",
+      "html": "<select class=\"ds-select\"><option>Unit: Seluruh RS</option></select>",
+      "css": ".ds-select{font-family:\"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif;font-size:14px;height:32px;padding:0 10px;min-width:176px;border:1px solid var(--input, oklch(0.91 0.012 240));border-radius:10px;background:var(--card, #fff);color:var(--foreground, oklch(0.145 0 0))}.ds-select:focus-visible{outline:2px solid var(--ring, oklch(0.62 0.13 245));outline-offset:1px}"
+    },
+    {
+      "name": "Status Badge",
+      "kind": "chip",
+      "refersTo": "badge-ok",
+      "description": "Status = ikon + label + tint; label kalimat biasa.",
+      "html": "<span class=\"ds-badge ds-ok\"><svg viewBox=\"0 0 24 24\" width=\"12\" height=\"12\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\"><path d=\"M20 6 9 17l-5-5\"/></svg><b>Sesuai target</b></span> <span class=\"ds-badge ds-crit\"><svg viewBox=\"0 0 24 24\" width=\"12\" height=\"12\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"m15 9-6 6M9 9l6 6\"/></svg><b>Di luar target</b></span>",
+      "css": ".ds-badge{display:inline-flex;align-items:center;gap:4px;font-family:\"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif;font-size:12px;font-weight:500;padding:2px 8px;border-radius:8px;border:1px solid}.ds-badge b{font-weight:500;color:var(--foreground, oklch(0.145 0 0))}.ds-ok{color:var(--chart-2, oklch(0.62 0.15 152));border-color:color-mix(in oklab, var(--chart-2, oklch(0.62 0.15 152)) 50%, transparent);background:color-mix(in oklab, var(--chart-2, oklch(0.62 0.15 152)) 10%, transparent)}.ds-crit{color:var(--destructive, oklch(0.577 0.245 27.3));border-color:transparent;background:color-mix(in oklab, var(--destructive, oklch(0.577 0.245 27.3)) 10%, transparent)}.ds-crit b{color:var(--destructive, oklch(0.577 0.245 27.3))}"
+    },
+    {
+      "name": "Navigation Item",
+      "kind": "nav",
+      "refersTo": "nav-item-active",
+      "description": "Item sidebar; aktif memakai tint terpilih.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-item\" aria-current=\"page\" href=\"#\">Ringkasan</a><a class=\"ds-nav-item\" href=\"#\">Mutu &amp; keselamatan</a><a class=\"ds-nav-item\" href=\"#\">Keuangan</a></nav>",
+      "css": ".ds-nav{display:flex;flex-direction:column;gap:2px;width:220px;padding:8px;background:var(--sidebar, oklch(0.97 0.012 240));font-family:\"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif}.ds-nav-item{font-size:14px;padding:6px 8px;border-radius:8px;color:var(--foreground, oklch(0.145 0 0));text-decoration:none;transition:background 100ms}.ds-nav-item:hover{background:var(--sidebar-accent, oklch(0.92 0.035 242))}.ds-nav-item[aria-current=page]{background:var(--sidebar-accent, oklch(0.92 0.035 242));color:var(--sidebar-accent-foreground, oklch(0.34 0.11 248));font-weight:500}.ds-nav-item:focus-visible{outline:2px solid var(--ring, oklch(0.62 0.13 245))}"
+    },
+    {
+      "name": "Tile Indikator",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Signature: KPI dengan status, angka tabular, target, dan footer delta.",
+      "html": "<button class=\"ds-tile\"><span class=\"ds-tile-h\"><span>BOR · Bed Occupancy Rate</span><em>Di luar target</em></span><strong>87<small>%</small></strong><span class=\"ds-muted\">Target 60–85% · RS-level</span><span class=\"ds-tile-f\"><span><i>+4,2</i><span>vs Okt</span></span><span>3 pasien IGD menunggu bed.</span></span></button>",
+      "css": ".ds-tile{display:flex;flex-direction:column;gap:12px;width:320px;padding:16px 0 0;text-align:left;font-family:\"IBM Plex Sans\", ui-sans-serif, system-ui, sans-serif;font-size:14px;background:var(--card, #fff);color:var(--foreground, oklch(0.145 0 0));border:0;border-radius:14px;overflow:hidden;box-shadow:0 0 0 1px color-mix(in oklab, var(--foreground, #000) 10%, transparent);cursor:pointer;transition:transform 150ms, box-shadow 150ms}.ds-tile:hover{transform:translateY(-2px);box-shadow:0 0 0 1px color-mix(in oklab, var(--foreground, #000) 10%, transparent),0 4px 6px -1px rgb(0 0 0 / .1)}.ds-tile:focus-visible{outline:2px solid var(--ring, oklch(0.62 0.13 245))}.ds-tile>*{padding:0 16px}.ds-tile-h{display:flex;justify-content:space-between;gap:8px;font-weight:500}.ds-tile-h em{font-style:normal;font-size:12px;padding:2px 8px;border-radius:8px;color:var(--destructive, oklch(0.577 0.245 27.3));background:color-mix(in oklab, var(--destructive, oklch(0.577 0.245 27.3)) 10%, transparent)}.ds-tile strong{font-size:36px;font-weight:600;letter-spacing:-.025em;font-variant-numeric:tabular-nums}.ds-tile small{font-size:14px;font-weight:400;margin-left:4px;color:var(--muted-foreground, oklch(0.556 0 0))}.ds-muted{color:var(--muted-foreground, oklch(0.556 0 0))}.ds-tile-f{display:flex;flex-direction:column;gap:4px;padding:16px;background:color-mix(in oklab, var(--muted, oklch(0.96 0.008 240)) 50%, transparent);border-top:1px solid var(--border, oklch(0.91 0.012 240));color:var(--muted-foreground, oklch(0.556 0 0))}.ds-tile-f>span:first-child{display:flex;justify-content:space-between}.ds-tile-f i{font-style:normal;font-weight:500;color:var(--destructive, oklch(0.577 0.245 27.3))}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Papan Komando Direksi",
+    "overview": "Layar ini adalah meja komando direksi rumah sakit: yang perlu ditindaklanjuti berada paling atas, konteks dan bukti di bawahnya. Setiap elemen harus menjawab satu dari dua pertanyaan, yaitu \"apa yang sedang tidak beres\" dan \"siapa yang harus bertindak\", lalu mundur dan memberi ruang bagi angka.\n\nSistemnya sengaja terkendali. Biru medis dipakai untuk aksi dan pilihan aktif, merah untuk pelanggaran ambang, hijau dan kuning untuk status. Di luar itu, permukaan putih kebiruan yang bersih. Kepadatannya padat-tapi-bernapas: kartu berjarak 24px, isi kartu berjarak 12–16px, dan angka KPI besar dengan angka tabular, sehingga mata langsung menemukan nilainya.\n\nSemua dibangun 100% dari Basecoat UI 1.3 (style pack Nova) dan utilitas Tailwind v4, tanpa CSS komponen buatan sendiri. Identitas hidup di token, bukan di stylesheet.",
+    "keyCharacteristics": [
+      "Prioritas lebih dulu, konteks kemudian; status selalu ikon + label + warna.",
+      "Satu keluarga huruf (IBM Plex Sans) dengan langkah ukuran yang tegas.",
+      "Datar saat diam; bayangan hanya sebagai respons hover.",
+      "Biru medis tenang, netral sejuk, merah hanya untuk pelanggaran.",
+      "Mode terang dan gelap setara; setiap token terang didefinisikan ulang untuk gelap."
+    ],
+    "rules": [
+      {
+        "name": "The Fixed Meaning Rule",
+        "body": "`--chart-2` selalu aman, `--chart-3` selalu waspada, `--destructive` selalu pelanggaran. Warna status tidak pernah dipakai sebagai hiasan atau pembeda kategori.",
+        "section": "colors"
+      },
+      {
+        "name": "The Quiet Accent Rule",
+        "body": "Biru medis hanya untuk aksi utama, pilihan aktif, dan data tren. Status yang tidak aktif dan elemen dekoratif tidak memakai warna jenuh.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Family Rule",
+        "body": "Satu keluarga huruf untuk semua peran. Hierarki datang dari ukuran dan bobot, bukan dari font kedua.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tabular Rule",
+        "body": "Setiap angka yang dibandingkan (KPI, tabel, skor) memakai angka tabular.",
+        "section": "typography"
+      },
+      {
+        "name": "The Action-First Rule",
+        "body": "Urutan setiap halaman: indikator inti atau prioritas → daftar tindak lanjut → tren → detail. Detail tidak pernah mendahului keputusan.",
+        "section": "layout"
+      },
+      {
+        "name": "The Flat-By-Default Rule",
+        "body": "Permukaan tidak berbayang saat diam. Bayangan berarti \"ini bisa diklik dan sedang ditunjuk\", tidak lebih.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do memasangkan setiap status dengan ikon dan label teks; warna tidak pernah sendirian.",
+      "Do mendefinisikan ulang setiap token yang di-override di `:root` di dalam `.dark`.",
+      "Do membaca warna grafik dari token (`--chart-1..5`, `--destructive`) lewat konversi `rgb()`, dan merender ulang grafik saat tema berganti.",
+      "Do memakai angka tabular untuk semua angka yang dibandingkan.",
+      "Do menulis status tanpa dasar target sebagai \"Target belum ditetapkan\".",
+      "Do memakai istilah klinis dan manajemen RS (BOR, ALOS, INM, berkas klaim) dalam Bahasa Indonesia."
+    ],
+    "donts": [
+      "Don't menulis CSS komponen sendiri atau memuat library berat; hanya Basecoat, token, dan utilitas Tailwind.",
+      "Don't menaruh kartu di dalam kartu; daftar di dalam kartu dipisah garis rambut.",
+      "Don't menambah `border` pada `.card` atau mengganti padding kartu dengan `py-*` (merusak footer Nova).",
+      "Don't memakai label status bahasa Inggris atau huruf kapital semua (ON-TARGET, BREACH).",
+      "Don't memberi bayangan pada permukaan yang tidak dapat diklik.",
+      "Don't memakai warna status untuk dekorasi atau pembeda kategori."
+    ]
+  }
+}
