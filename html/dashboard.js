@@ -134,7 +134,9 @@ function kpiFor(k) {
 /* status INM selalu dihitung dari target (termasuk data bulanan dan jawaban asisten) */
 inm.forEach(i => { i.status = statusFromTarget(i.target, i.value); });
 const inmFor = () => inm.map(i => { const value = isMonth() ? i.value : pv("inm" + i.k, i.value, 0.03); return { ...i, value, status: statusFromTarget(i.target, value) }; });
-const unitsFor = () => units.map(u => isMonth() ? u : { ...u, bor: pv("bor" + u.name, u.bor, 0.05), alos: pv("alos" + u.name, u.alos, 0.06), toi: pv("toi" + u.name, u.toi, 0.08), bto: pv("bto" + u.name, u.bto, 0.04) });
+/* status unit = BOR terhadap rentang 60–85% (dihitung, tidak ditulis tangan) */
+const unitsFor = () => units.map(u => { const v = isMonth() ? u : { ...u, bor: pv("bor" + u.name, u.bor, 0.05), alos: pv("alos" + u.name, u.alos, 0.06), toi: pv("toi" + u.name, u.toi, 0.08), bto: pv("bto" + u.name, u.bto, 0.04) };
+  return { ...v, status: statusFromBand(v.bor, [60, 85]) }; });
 
 const TABS = [
   { id:"ringkasan",  label:"Ringkasan",          icon:"home",      roles:["direksi","unit","mutu"] },
@@ -402,10 +404,10 @@ function simpleMetric({ label, value, unit = "", target, status, note, k }) {
   const tag = k ? "button" : "article";
   const attrs = k ? ` type="button" data-k="${esc(k)}" aria-label="${esc(label)}: ${esc(String(value))} ${esc(unit)}, ${esc(status === "na" ? "target belum ditetapkan" : statusLabel(status).toLowerCase())}. Buka definisi."` : "";
   return `<${tag} class="card min-w-0 gap-2 text-left ${k ? "transition hover:-translate-y-0.5 hover:bg-muted/50 hover:shadow-md motion-reduce:transition-none motion-reduce:hover:translate-y-0" : ""}"${attrs}>
-    <header class="flex items-start justify-between gap-2 px-4"><span class="text-sm font-medium leading-snug">${esc(label)}${k ? `<span class="ml-1 inline-flex align-[-2px] text-muted-foreground [&>svg]:size-3.5" title="Buka definisi">${icon("info", "aria-hidden=\"true\"")}</span>` : ""}</span>${badge(status)}</header>
+    <header class="flex items-start justify-between gap-2 px-4"><span class="text-sm font-medium leading-snug">${esc(label)}${k ? `<span class="ml-1 inline-flex align-[-2px] text-muted-foreground [&>svg]:size-3.5" title="Buka definisi">${icon("info", "aria-hidden=\"true\"")}</span>` : ""}</span>${badge(status, status === "neutral" ? "Potret" : undefined)}</header>
     <section class="flex flex-col gap-1 px-4">
       <strong class="text-3xl font-semibold tracking-tight tabular-nums">${value}<span class="ml-1 text-sm font-normal text-muted-foreground">${esc(unit)}</span></strong>
-      <span class="text-sm text-muted-foreground">${status === "na" ? "Target belum ditetapkan" : "Target " + esc(target)}</span>
+      ${status === "na" ? `<span class="text-sm text-muted-foreground">Target belum ditetapkan</span>` : target ? `<span class="text-sm text-muted-foreground">Target ${esc(target)}</span>` : ""}
       <span class="text-sm text-muted-foreground">${esc(note)}</span>
     </section>
   </${tag}>`;
@@ -451,7 +453,10 @@ function itemList(rows) {
 function domainRiskCard() {
   const allowed = new Set(allowedTabs().map(t => t.id));
   return card({ title: "Status per domain", sub: "5 domain",
-    body: itemList(domainRisk.map(d => ({ title: d.name, desc: d.note, badge: badge(d.status), go: allowed.has(d.tab) ? d.tab : "" }))) });
+    body: itemList(domainRisk.map(d => {
+      if (d.tab === "pengalaman") { const x = experienceFor(); d = { ...d, status: worst(Object.values(x.st)), note: `Kepuasan ${fmt(x.satisfaction, 1)} · komplain ${x.complaints} · APS ${fmt(x.dama, 1)}%` }; }
+      return { title: d.name, desc: d.note, badge: badge(d.status), go: allowed.has(d.tab) ? d.tab : "" };
+    })) });
 }
 
 function priorityTable(rows) {
@@ -603,28 +608,62 @@ function boxplot() {
   }), 280);
 }
 
+/* ================= Pengalaman pasien: satu sumber dengan INM 12/13 ================= */
+const causeOwner = {
+  "Waktu tunggu": ["Kepala Instalasi Rawat Jalan & IGD", "tindak lanjut di tab Akses & waktu", "akses"],
+  "Komunikasi petugas": ["Bidang Keperawatan", "pelatihan komunikasi efektif per unit"],
+  "Kebersihan ruang": ["Kepala Instalasi Rumah Tangga", "audit kebersihan kamar harian"],
+  "Kejelasan tagihan": ["Kepala Bagian Keuangan", "rincian biaya diserahkan sebelum pulang"]
+};
+function experienceFor() {
+  const ix = k => inmFor().find(i => i.k === k);
+  const sat = ix("Kepuasan pasien"), resp = ix("Kecepatan tanggap komplain");
+  const pareto = experience.pareto.map(p => ({ ...p, n: pc(p.n) }));
+  const complaints = pareto.reduce((a, p) => a + p.n, 0), complaintsTarget = Math.max(1, pc(experience.complaintsTarget));
+  const dama = pv("dama", experience.dama, 0.15);
+  return { ...experience, pareto, complaints, complaintsTarget, dama, responses: pc(412),
+    satisfaction: sat.value, satTarget: sat.target, response48h: resp.value, respTarget: resp.target,
+    st: { sat: sat.status, resp: resp.status, cmp: statusFromTarget("≤" + complaintsTarget, complaints), dama: statusFromTarget("<" + experience.damaTarget, dama) } };
+}
+const worst = sts => sts.reduce((a, s) => SEV[s] < SEV[a] ? s : a, "ok");
+
 function renderPengalaman() {
-  const e = { ...experience, satisfaction: pv("sat", experience.satisfaction, 0.02), complaints: pc(experience.complaints), complaintsTarget: pc(experience.complaintsTarget),
-    pareto: experience.pareto.map(x => ({ ...x, n: pc(x.n) })), dama: pv("dama", experience.dama, 0.15), response48h: pv("resp", experience.response48h, 0.03) };
+  const x = experienceFor(), top = x.pareto[0];
+  const unitNote = state.unit === "all" ? "" : " · dihitung di tingkat RS";
+  const lvl = st => badge(st === "crit" ? "crit" : "warn", st === "crit" ? "Kritis" : "Pantau");
+  const actions = [];
+  if (x.st.cmp !== "ok") {
+    const [owner, step, go] = causeOwner[top.label] || ["Unit pengaduan", "telaah komplain terbanyak"];
+    actions.push({ title: `Komplain ${x.complaints} (target ≤${x.complaintsTarget}); ${top.n} soal ${top.label.toLowerCase()}`, desc: `${owner} · ${step}`, badge: lvl(x.st.cmp), ...(go ? { go } : { jump: "kartu-pareto" }) });
+  }
+  x.pareto.slice(1, 3).filter(p => causeOwner[p.label] && p.n > 1).forEach(p => {
+    const [owner, step] = causeOwner[p.label];
+    actions.push({ title: `${p.label}: ${p.n} komplain`, desc: `${owner} · ${step}`, badge: lvl("warn"), jump: "kartu-pareto" });
+  });
+  if (x.st.dama !== "ok") actions.push({ title: `Pulang APS ${fmt(x.dama, 1)}% (batas <${fmt(x.damaTarget, 0)}%)`, desc: "Kepala ruang & DPJP · telaah alasan pulang APS per kasus", badge: lvl(x.st.dama), k: "APS" });
+  if (x.st.resp !== "ok") actions.push({ title: `Komplain ditanggapi tepat waktu ${fmt(x.response48h)}% (target ${x.respTarget})`, desc: "Unit pengaduan · tanggapi dalam 48 jam", badge: lvl(x.st.resp), k: "INM12" });
+  if (x.st.sat !== "ok") actions.push({ title: `Kepuasan pasien ${fmt(x.satisfaction, 1)} (target ${x.satTarget})`, desc: "Komite Mutu · telaah survei per unit", badge: lvl(x.st.sat), jump: "kartu-kepuasan" });
+  const bad = [x.st.cmp !== "ok" && `komplain ${x.complaints} melebihi target ≤${x.complaintsTarget} (${top.n} soal ${top.label.toLowerCase()})`,
+    x.st.dama !== "ok" && `pulang APS ${fmt(x.dama, 1)}% di atas batas <${fmt(x.damaTarget, 0)}%`].filter(Boolean);
+  const verdict = `Kepuasan pasien <b class="tabular-nums">${fmt(x.satisfaction, 1)}</b> ${x.st.sat === "ok" ? "memenuhi" : "di bawah"} target ${esc(x.satTarget)}${bad.length ? `, tetapi ${bad.join(" dan ")}` : ""}. ${fmt(x.response48h)}% komplain ditanggapi ≤48 jam.`;
   return `
-  ${sectionHead("Pengalaman pasien", "kepuasan · komplain · DAMA", scopeText())}
-  ${grid("lg:grid-cols-2", `
-    ${card({ title: "Indeks kepuasan pasien", sub: "survei pasca rawat",
-      body: `${gauge({ value: e.satisfaction, target: e.satisfactionTarget, unit: "/100", label: "Kepuasan pasien" })}
-        <p class="text-sm text-muted-foreground">Di atas target ${e.satisfactionTarget}. Komplain ${e.complaints} ${P().label.toLowerCase()} (target ≤${e.complaintsTarget}); ${e.response48h}% ditutup dalam 48 jam.</p>`,
-      foot: "Sumber: survei pasca rawat · 412 respons" })}
-    ${card({ title: "Tren kepuasan", sub: gran("7 bulan terakhir"), body: trendChart({ series: [{ name: "Indeks", data: e.satisfactionSeries }], labels: ["Mei","Jun","Jul","Agu","Sep","Okt","Nov"], target: e.satisfactionTarget, height: 260 }) })}`)}
-  ${grid("lg:grid-cols-2", `
-    ${card({ title: "Pareto keluhan", sub: `${e.complaints} komplain`,
-      body: hBars({ rows: e.pareto.map(p => ({ label: p.label, v: p.n })), unit: "×", label: "Pareto keluhan", highlight: [0] }),
-      foot: "5 dari 12 komplain soal waktu tunggu; selaras dengan waktu tunggu IGD." })}
-    ${card({ title: "Penutupan keluhan & DAMA", sub: "bulan berjalan",
-      body: statusTable([
-        { n: "Komplain diterima", t: "≤" + e.complaintsTarget, v: String(e.complaints), st: "warn" },
-        { n: "Ditutup ≤48 jam", t: "≥" + e.responseTarget + "%", v: e.response48h + "%", st: "ok" },
-        { n: "Pulang atas permintaan sendiri", t: "<" + e.damaTarget + "%", v: fmt(e.dama, 1) + "%", st: "warn" }
-      ]),
-      foot: "DAMA dipantau karena berkorelasi dengan kepuasan dan readmisi." })}`)}`;
+  ${sectionHead("Pengalaman pasien", `${P().range} · survei pasca rawat dan pengaduan${unitNote}`, scopeText())}
+  ${grid("sm:grid-cols-2 2xl:grid-cols-4", `
+    ${simpleMetric({ k:"INM13", label:"Kepuasan pasien (INM)", value: fmt(x.satisfaction, 1), unit:"/100", target: x.satTarget, status: x.st.sat, note:`Survei pasca rawat · ${fmt(x.responses)} respons.` })}
+    ${simpleMetric({ k:"KOMPLAIN", label:"Komplain diterima", value: fmt(x.complaints), unit:"komplain", target:"≤" + x.complaintsTarget, status: x.st.cmp, note:`Terbanyak: ${top.label.toLowerCase()} (${top.n}).` })}
+    ${simpleMetric({ k:"INM12", label:"Komplain ditanggapi ≤48 jam (INM)", value: fmt(x.response48h), unit:"%", target: x.respTarget, status: x.st.resp, note:"Kecepatan tanggap komplain." })}
+    ${simpleMetric({ k:"APS", label:"Pulang APS", value: fmt(x.dama, 1), unit:"%", target:"<" + fmt(x.damaTarget, 0) + "%", status: x.st.dama, note:"Pulang atas permintaan sendiri (DAMA)." })}`)}
+  <div class="alert">${icon(bad.length ? "alert" : "check")}<h3>Ringkasan pengalaman pasien ${esc(P().label.toLowerCase())}</h3><section><p>${verdict}</p></section></div>
+  ${grid("2xl:grid-cols-2", `
+    ${card({ title: "Tindak lanjut pengalaman pasien", sub: `${actions.length} langkah · pemilik · klik untuk melihat buktinya`,
+      body: actions.length ? itemList(actions) : `<p class="text-sm text-muted-foreground">Semua indikator pengalaman pasien sesuai target.</p>`,
+      foot: sourceFoot("SIMRS modul pengaduan", "Diurutkan dari status paling berat.") })}
+    ${card({ id: "kartu-pareto", title: "Penyebab komplain", sub: `${x.complaints} komplain · terbanyak di atas`,
+      body: hBars({ rows: x.pareto.map(p => ({ label: p.label, v: p.n })), unit: "×", label: "Penyebab komplain", highlight: [0], highlightColor: "emph" }),
+      foot: sourceFoot("SIMRS modul pengaduan", `${top.n} dari ${x.complaints} komplain soal ${top.label.toLowerCase()}; selaras dengan waktu tunggu di tab Akses & waktu.`) })}`)}
+  ${card({ id: "kartu-kepuasan", title: "Tren kepuasan pasien", sub: `indeks 0–100 · ${gran("7 bulan terakhir")} · target ${esc(x.satTarget)}`, action: defBtn("INM13"),
+    body: trendChart({ series: [{ name: "Indeks kepuasan", data: x.satisfactionSeries }], labels: ["Mei","Jun","Jul","Agu","Sep","Okt","Nov"], target: targetNum(x.satTarget), height: 240 }),
+    foot: sourceFoot("Survei kepuasan pasca rawat", "Indeks rata-rata dari survei pasien rawat inap dan rawat jalan.") })}`;
 }
 
 function renderAkses() {
@@ -730,10 +769,10 @@ function precheckCards() {
 }
 /* antrean perbaikan berkas: dipakai di Keuangan (direksi) dan Operasional (kepala unit) */
 const checklistChart = c => hBars({ rows: c.checklistFails.map(x => ({ label: x.label, v: x.n })), unit: "×", label: "Butir checklist klaim gagal", highlight: [0, 1], highlightColor: "emph" });
-function checklistCard(c = precheckFor()) {
+function checklistCard(c = precheckFor(), note = "Perbaiki butir ini sebelum berkas dikirim ke BPJS untuk menekan denial.") {
   return card({ title: "Butir checklist paling sering gagal", sub: "dari 10 butir kelengkapan berkas · 2 terbanyak disorot",
     body: checklistChart(c),
-    foot: sourceFoot(c.source, "Perbaiki butir ini sebelum berkas dikirim ke BPJS untuk menekan denial.") });
+    foot: sourceFoot(c.source, note) });
 }
 
 function equipmentFor() {
@@ -749,58 +788,107 @@ function renderEquipment() {
   const e = equipmentFor();
   const readySt = e.readyPct == null ? "na" : statusFromTarget("≥" + e.readyTarget, e.readyPct);
   const utilBad = e.utilities.filter(u => u.st !== "ok").length;
-  const pctCell = u => { const p = Math.round(u.ready / u.total * 100);
-    return `<div class="flex min-w-28 flex-col gap-1"><div class="progress ${p < 85 ? "*:bg-destructive" : ""}" role="progressbar" aria-valuenow="${p}" aria-valuemin="0" aria-valuemax="100" aria-label="${p}% siap"><span style="width:${p}%"></span></div><span class="text-xs text-muted-foreground tabular-nums">${p}%</span></div>`; };
+  const pctOf = u => Math.round(u.ready / u.total * 100), stOf = u => statusFromTarget("≥" + e.readyTarget, pctOf(u));
+  const pctCell = u => { const p = pctOf(u), st = stOf(u);
+    return `<div class="flex min-w-24 items-center gap-2"><span class="text-sm tabular-nums">${p}%</span>${badge(st)}</div>`; };
   return `
-  ${sectionHead("Kesiapan alat & utilitas kritis", "snapshot hari ini · alat kritis per unit", scopeText())}
+  ${sectionHead("Kesiapan alat & utilitas kritis", "potret pukul 07:42 · tidak mengikuti filter periode", scopeText())}
   ${grid("sm:grid-cols-2 2xl:grid-cols-4", `
-    ${simpleMetric({ k:"ALATKRIT", label:"Alat kritis siap pakai", value: e.readyPct == null ? "–" : fmt(e.readyPct, 1), unit:"%", target:"≥" + e.readyTarget + "%", status: readySt, note: e.tot ? `${e.rdy} dari ${e.tot} alat berstatus READY.` : "Unit ini tidak punya alat kritis terdaftar." })}
+    ${simpleMetric({ k:"ALATKRIT", label:"Alat kritis siap pakai", value: e.readyPct == null ? "–" : fmt(e.readyPct, 1), unit:"%", target:"≥" + e.readyTarget + "%", status: readySt, note: e.tot ? `${e.rdy} dari ${e.tot} alat siap pakai.` : "Unit ini tidak punya alat kritis terdaftar." })}
     ${simpleMetric({ k:"KALIB", label:"Kepatuhan kalibrasi", value: fmt(e.calibPct, 1), unit:"%", status:"na", note:`${e.calibration.inPeriod} dari ${e.calibration.required} alat dalam masa kalibrasi.` })}
-    ${simpleMetric({ k:"COLDCHAIN", label:"Excursion cold chain", value: fmt(e.excursions), unit:"kejadian", target:"0", status: e.excursions ? "warn" : "ok", note:`${e.coldChain.storages} unit penyimpanan farmasi dipantau.` })}
+    ${simpleMetric({ k:"COLDCHAIN", label:"Penyimpangan suhu cold chain", value: fmt(e.excursions), unit:"kejadian", target:"0", status: e.excursions ? "warn" : "ok", note:`${e.coldChain.storages} unit penyimpanan farmasi dipantau.` })}
     ${simpleMetric({ label:"Utilitas kritis normal", value: `${e.utilities.length - utilBad}/${e.utilities.length}`, unit:"sistem", target:"semua normal", status: utilBad ? "warn" : "ok", note:"Oksigen, vakum, genset, UPS, cold chain." })}`)}
   ${grid("2xl:grid-cols-5", `
-    <div class="min-w-0 2xl:col-span-3">${card({ title: "Kesiapan alat kritis per unit", sub: "merah = <85% siap",
-      body: table([{ t:"Unit" }, { t:"Alat", num:true }, { t:"Siap", num:true }, { t:"Peringatan", num:true }, { t:"Tidak siap", num:true }, { t:"% siap" }],
+    <div class="min-w-0 2xl:col-span-3">${card({ id: "kartu-alat", title: "Kesiapan alat kritis per unit", sub: `status = % siap terhadap target ≥${e.readyTarget}%`,
+      body: respTable(table([{ t:"Unit" }, { t:"Alat", num:true }, { t:"Siap", num:true }, { t:"Peringatan", num:true }, { t:"Tidak siap", num:true }, { t:"% siap" }],
         e.rows.map(u => ({ cells: [`<span class="font-medium">${esc(u.unit)}</span>`, u.total, u.ready, u.warn, u.down ? `<span class="font-medium text-destructive">${u.down}</span>` : 0, pctCell(u)] })),
         "Unit ini tidak punya alat kritis terdaftar."),
-      foot: sourceFoot(e.source, "Peringatan = menunggu kalibrasi, maintenance, pembersihan, atau aksesori; tidak siap = rusak, dikarantina, atau out of service.") })}</div>
+        e.rows.map(u => ({ title: u.unit, desc: `${u.ready}/${u.total} siap (${pctOf(u)}%) · ${u.warn} peringatan · ${u.down} tidak siap`, badge: badge(stOf(u)) }))),
+      foot: sourceFoot(e.source, "Peringatan = menunggu kalibrasi, pemeliharaan, pembersihan, atau aksesori; tidak siap = rusak, dikarantina, atau tidak beroperasi.") })}</div>
     <div class="min-w-0 2xl:col-span-2">${card({ title: "Utilitas kritis", sub: "status terkini",
       body: itemList(e.utilities.map(u => ({ title: u.name, desc: `${u.value} · data ${u.age} lalu`, badge: badge(u.st, u.st === "ok" ? "Normal" : u.st === "warn" ? "Perhatian" : "Gangguan") }))),
-      foot: e.coldChain.note })}</div>`)}
+      foot: sourceFoot(e.source, e.coldChain.note) })}</div>`)}
   ${grid("2xl:grid-cols-2", `
-    ${card({ title: "Kalibrasi jatuh tempo", sub: "≤30 hari dan terlambat",
+    ${card({ id: "kartu-kalibrasi", title: "Kalibrasi jatuh tempo", sub: "≤30 hari dan terlambat",
       body: `<div class="flex flex-col gap-4">
         <div class="progress h-2" role="progressbar" aria-valuenow="${Math.round(e.calibPct)}" aria-valuemin="0" aria-valuemax="100" aria-label="${fmt(e.calibPct, 1)}% alat dalam masa kalibrasi"><span style="width:${e.calibPct}%"></span></div>
         ${e.due.length ? itemList(e.due.map(d => ({ title: d.name, desc: `${d.unit} · ${d.due}`, badge: badge(d.st, d.st === "crit" ? "Terlambat" : d.st === "warn" ? "Segera" : "Terjadwal") }))) : `<p class="text-sm text-muted-foreground">Tidak ada kalibrasi jatuh tempo untuk unit ini.</p>`}
       </div>`,
-      foot: "Alat yang lewat jatuh tempo kalibrasi dikarantina sampai lulus uji ulang." })}
-    ${card({ title: "Tren kesiapan alat kritis", sub: `% READY · ${gran("7 bulan terakhir")} · target ≥${e.readyTarget}%`,
-      body: trendChart({ series: [{ name: "Alat kritis siap", data: e.readySeries }], labels: e.readyLabels, target: e.readyTarget, unit: "%", label: "Tren kesiapan alat kritis", height: 240 }) })}`)}`;
+      foot: sourceFoot(e.source, "Alat yang lewat jatuh tempo kalibrasi dikarantina sampai lulus uji ulang.") })}
+    ${card({ title: "Tren kesiapan alat kritis", action: defBtn("ALATKRIT"), sub: `% siap · ${gran("7 bulan terakhir")} · target ≥${e.readyTarget}%`,
+      body: trendChart({ series: [{ name: "Alat kritis siap", data: e.readySeries }], labels: e.readyLabels, target: e.readyTarget, unit: "%", label: "Tren kesiapan alat kritis", height: 240 }),
+      foot: sourceFoot(e.source, "Persentase alat kritis berstatus siap pakai, akhir bulan.") })}`)}`;
 }
 
-function renderOperasional() {  return `
-  ${sectionHead("Operasional & kapasitas", "Barber Johnson · per bangsal", scopeText())}
-  ${grid("2xl:grid-cols-5", `
-    <div class="min-w-0 2xl:col-span-3">${card({ title: "Barber Johnson", sub: "BOR vs ALOS per unit · area biru = zona efisiensi",
-      body: scatterBj(),
-      foot: "ICU dan HCU berada di kuadran BOR tinggi–ALOS panjang: bed terpakai intensif dan lama. VIP berada di BOR rendah–ALOS pendek: kapasitas menganggur." })}</div>
-    <div class="flex min-w-0 flex-col gap-6 2xl:col-span-2">
-      ${capacityCard()}
-      ${card({ title: "Unit perlu perhatian", sub: "hari ini", body: itemList([
-        { title: "ICU", desc: "92% · 11/12 bed", badge: badge("crit", "Kritis") },
-        { title: "HCU", desc: "89% · 16/18 bed", badge: badge("warn", "Pantau") },
-        { title: "Rawat Inap A", desc: "88% · 35/40 bed", badge: badge("warn", "Pantau") },
-        { title: "VIP / Paviliun", desc: "58% · 13/22 bed", badge: badge("ok", "Longgar") }]) })}
-    </div>`)}
-  ${card({ title: "Indikator rawat inap per unit", sub: "klik unit untuk memfilter", body: unitTable(),
-    foot: "BTO dan TOI lebih berguna dibaca bersama pada Barber Johnson daripada sebagai angka terpisah." })}
-  ${card({ title: "Bed board okupansi harian", sub: "4 jendela jam · hari ini · merah = ≥90%", body: bedBoard(),
-    foot: "Hold IGD menunda pindahan; bed bersih menunggu pembersihan akhir sebelum diisi." })}
+/* ================= Operasional: potret kapasitas per unit ================= */
+const BOR_BAND = [60, 85];
+const sameUnit = n => state.unit === "all" || n === state.unit || state.unit.startsWith(n + " ") || n.startsWith(state.unit + " ");
+const borGap = u => u.bor > BOR_BAND[1] ? u.bor - BOR_BAND[1] : BOR_BAND[0] - u.bor;
+function opsFor() {
+  const U = unitsFor(), bb = capacity.bedBoard.filter(r => sameUnit(r.unit));
+  const sum = f => bb.reduce((a, r) => a + f(r), 0);
+  const beds = sum(r => r.beds), occ = sum(r => r.occupied[0]), clean = sum(r => r.clean);
+  const u = state.unit === "all" ? null : U.find(x => sameUnit(x.name));
+  const bor = u ? u.bor : kpiFor("BOR").value;
+  const hot = U.filter(x => x.status !== "ok" && sameUnit(x.name)).sort((a, b) => SEV[a.status] - SEV[b.status] || borGap(b) - borGap(a));
+  return { U, bb, beds, occ, free: beds - occ, clean, u, bor, borSt: u ? u.status : kpiFor("BOR").status, hot,
+    wait: capacity.igdWaiting, pending: capacity.dischargesPlanned - capacity.dischargesDone, e: equipmentFor() };
+}
+/* tabel di layar lebar, daftar di ponsel: kolom keputusan selalu terlihat */
+const respTable = (tableHtml, rows) => `<div class="hidden sm:block">${tableHtml}</div><div class="sm:hidden">${itemList(rows)}</div>`;
+
+function renderOperasional() {
+  const o = opsFor(), e = o.e;
+  const rsNote = state.unit === "all" ? "" : " · antrean IGD dan rencana pulang dihitung di tingkat RS";
+  const down = e.rows.reduce((a, r) => a + r.down, 0), quarantined = e.due.filter(d => d.st === "crit");
+  const hi = o.hot.filter(u => u.bor > BOR_BAND[1]);
+  const lvl = st => badge(st === "crit" ? "crit" : "warn", st === "crit" ? "Kritis" : "Pantau");
+  const actions = [
+    ...o.hot.slice(0, 3).map(u => ({ title: `${u.name} BOR ${fmt(u.bor)}% (rentang 60–85%)`,
+      desc: u.bor > BOR_BAND[1] ? `Kepala ruang ${u.name} & bed manager · percepat pasien pulang, tahan admisi elektif` : `Bed manager · arahkan admisi ke ${u.name}; kapasitas menganggur`,
+      badge: lvl(u.status), jump: "kartu-unit" })),
+    ...(o.wait ? [{ title: `${o.wait} pasien IGD menunggu bed`, desc: "Bed manager & Kepala IGD · isi bed bersih lebih dulu", badge: lvl(o.wait > 5 ? "crit" : "warn"), jump: "kartu-bedboard" }] : []),
+    ...(o.pending ? [{ title: `${o.pending} rencana pulang belum selesai`, desc: "DPJP & farmasi · resume medis dan obat pulang sebelum pukul 12.00", badge: lvl("warn"), jump: "kartu-bedboard" }] : []),
+    ...quarantined.map(d => ({ title: `${d.name} dikarantina`, desc: `IPSRS · kalibrasi ulang; ${d.unit} memakai alat cadangan`, badge: lvl("crit"), jump: "kartu-kalibrasi" }))
+  ];
+  const verdict = `BOR ${o.u ? esc(o.u.name) + " " : ""}<b class="tabular-nums">${fmt(o.bor)}%</b> ${o.borSt === "ok" ? "dalam" : "di luar"} rentang 60–85%${hi.length ? `; ${hi.map(u => `${esc(u.name)} ${fmt(u.bor)}%`).join(", ")} di atas batas` : ""}.
+    ${o.wait} pasien IGD menunggu bed dan ${o.pending} rencana pulang belum selesai.${down ? ` ${down} alat kritis tidak siap${quarantined.length ? `, termasuk ${quarantined.map(d => esc(d.name)).join(", ")} yang dikarantina` : ""}.` : ""}`;
+  const unitRows = o.U.filter(u => sameUnit(u.name));
+  const windows = ["Pagi · kini", "Siang", "Sore", "Malam"];
+  const barCell = (n, beds, proj) => { const p = Math.min(100, Math.round(n / beds * 100));
+    return `<div class="flex min-w-16 flex-col gap-1"><div class="progress ${p >= 90 ? "*:bg-destructive" : ""}" role="progressbar" aria-valuenow="${p}" aria-valuemin="0" aria-valuemax="100" aria-label="${n} dari ${beds} bed terisi${proj ? " (proyeksi)" : ""}${p >= 90 ? ", padat" : ""}"><span style="width:${p}%"></span></div><span class="text-xs text-muted-foreground tabular-nums">${n}/${beds}${p >= 90 ? " · padat" : ""}</span></div>`; };
+  const pts = priorityPatients.filter(p => sameUnit(p.unit)).slice(0, 5);
+  return `
+  ${sectionHead("Operasional & kapasitas", `potret pukul 07:42 · BOR mengikuti periode${rsNote}`, scopeText())}
+  ${grid("sm:grid-cols-3", `
+    ${simpleMetric({ k:"BOR", label: o.u ? `BOR ${o.u.name}` : "BOR rumah sakit", value: fmt(o.bor), unit:"%", target:"60–85%", status: o.borSt, note:`${o.occ} dari ${o.beds} bed terisi pukul 07:42.` })}
+    ${simpleMetric({ label:"Bed kosong sekarang", value: fmt(o.free), unit:"bed", status:"neutral", note:`${o.clean} di antaranya sudah bersih dan siap diisi.` })}
+    ${simpleMetric({ label:"Pasien IGD menunggu bed", value: fmt(o.wait), unit:"pasien", status:"neutral", note:`${o.pending} dari ${capacity.dischargesPlanned} rencana pulang belum selesai.` })}`)}
+  <div class="alert">${icon(o.borSt === "ok" && !o.hot.length ? "check" : "alert")}<h3>Ringkasan operasional pagi ini</h3><section><p class="max-w-prose">${verdict}</p></section></div>
+  ${card({ title: "Tindak lanjut operasional", sub: `${actions.length} langkah · pemilik · klik untuk melihat buktinya`,
+    body: actions.length ? itemList(actions) : `<p class="text-sm text-muted-foreground">Tidak ada unit di luar rentang BOR.</p>`,
+    foot: sourceFoot("SIMRS manajemen bed · ESOPT", "Diurutkan dari status paling berat. Status unit = BOR terhadap rentang 60–85%.") })}
+  ${card({ id: "kartu-unit", title: "Indikator rawat inap per unit", sub: "klik unit untuk memfilter · status = BOR terhadap rentang 60–85%", action: defBtn("BOR"),
+    body: respTable(unitTable(),
+      unitRows.map(u => ({ title: u.name, desc: `BOR ${fmt(u.bor)}% · ALOS ${fmt(u.alos, 1)} · TOI ${fmt(u.toi, 1)} · BTO ${u.bto}`, badge: badge(u.status) }))),
+    foot: sourceFoot("SIRS RL 1.2", "ALOS, TOI, dan BTO dibaca bersama pada grafik Barber Johnson di bawah.") })}
+  ${card({ id: "kartu-bedboard", title: "Papan bed per jendela jam", sub: "hari ini · pagi 06–12 = kondisi sekarang; siang, sore, malam = proyeksi dari jadwal pulang dan masuk",
+    body: respTable(table([{ t:"Unit" }, { t:"Bed", num:true }, ...windows.map(l => ({ t: l })), { t:"Bersih", num:true }, { t:"Hold IGD", num:true }],
+        o.bb.map(r => ({ cells: [`<span class="font-medium">${esc(r.unit)}</span>`, r.beds, ...r.occupied.map((n, i) => barCell(n, r.beds, i > 0)), r.clean, r.hold] })), "Unit ini tidak memiliki bed rawat."),
+      o.bb.map(r => ({ title: r.unit, desc: `Sekarang ${r.occupied[0]}/${r.beds} · proyeksi sore ${r.occupied[2]}/${r.beds} · ${r.clean} bersih · ${r.hold} hold IGD`,
+        badge: badge(r.occupied[0] / r.beds >= 0.9 ? "crit" : "neutral", r.occupied[0] / r.beds >= 0.9 ? "Padat" : `${r.beds - r.occupied[0]} kosong`) }))),
+    foot: sourceFoot("SIMRS manajemen bed", "Padat = ≥90% bed terisi. Hold IGD = pasien IGD yang menunggu pindah ke unit ini; bed bersih menunggu pembersihan akhir sebelum diisi.") })}
   ${grid("2xl:grid-cols-2", `
-    ${card({ title: "Tren okupansi", sub: `BOR % · ${gran("14 hari terakhir")}`, body: trendChart({ series: [{ name: "BOR harian", data: capacity.occupancySeries }], labels: capacity.occupancyLabels, band: [60, 85], unit: "%" }) })}
-    ${card({ title: "Pasien prioritas", sub: "drill-down unit", body: priorityTable(priorityPatients.filter(p => state.unit === "all" || p.unit === state.unit).slice(0, 5)),
-      foot: "Daftar penuh tersedia untuk kepala unit sesuai RBAC." })}`)}
-  ${state.role === "unit" ? grid("2xl:grid-cols-2", `${checklistCard()}${card({ title: "Kenapa ini di Operasional", body: `<p class="text-sm leading-relaxed">Resume medis, SEP, dan kewajaran LOS disiapkan di unit. Butir yang gagal pra-verifikasi adalah antrean perbaikan berkas sebelum klaim dikirim; angka keuangannya ada di tab Keuangan untuk direksi.</p>` })}`) : ""}
+    ${card({ title: "Barber Johnson", sub: "BOR vs ALOS per unit · area biru = zona efisiensi", action: defBtn("ALOS"),
+      body: scatterBj(),
+      foot: sourceFoot("SIRS RL 1.2", "ICU dan HCU di kuadran BOR tinggi–ALOS panjang: bed terpakai intensif dan lama. VIP di BOR rendah–ALOS pendek: kapasitas menganggur.") })}
+    ${card({ title: "Tren okupansi", sub: `BOR % · ${gran("14 hari terakhir")} · rentang 60–85%`, action: defBtn("BOR"),
+      body: trendChart({ series: [{ name: "BOR harian", data: capacity.occupancySeries }], labels: capacity.occupancyLabels, band: BOR_BAND, unit: "%" }),
+      foot: sourceFoot("SIRS RL 1.2", "BOR harian seluruh RS.") })}`)}
+  ${card({ title: "Pasien prioritas", sub: `${pts.length} pasien risiko tertinggi${state.unit === "all" ? "" : " di " + esc(state.unit)} · data anonim`,
+    body: respTable(priorityTable(pts), pts.map(p => ({ title: `${p.name}, ${p.age} · ${p.unit}`, desc: `${p.dx} · ${p.note}`, badge: badge(p.risk, riskLabel(p.risk)) }))),
+    foot: sourceFoot("SIMRS · early warning score", "Daftar lengkap per pasien hanya untuk kepala unit dan DPJP sesuai hak akses.") })}
+  ${state.role === "unit" ? checklistCard(undefined, "Resume medis, SEP, dan kewajaran LOS disiapkan di unit; perbaiki butir ini sebelum berkas dikirim ke BPJS. Angka keuangannya ada di tab Keuangan.") : ""}
   ${renderEquipment()}`;
 }
 
@@ -1214,6 +1302,7 @@ function currentValue(k) {
     return { value: `${e.excursions} kejadian`, status: e.excursions ? "warn" : "ok" }; }
   if (k === "INM") { const m = mutuFor(); return { value: `${m.ok}/${m.rows.length} tercapai`, status: m.status }; }
   if (/^INM\d+$/.test(k)) { const i = mutuFor().rows.find(x => x.key === k); return i ? { value: i.shown, status: i.status } : null; }
+  if (["APS", "KOMPLAIN"].includes(k)) { const x = experienceFor(); return k === "APS" ? { value: `${fmt(x.dama, 1)} %`, status: x.st.dama } : { value: `${x.complaints} komplain`, status: x.st.cmp }; }
   if (k === "READM") { const m = mutuFor(); return { value: `${fmt(m.readm, 1)} %`, status: m.readmSt }; }
   if (["REV", "AR", "DENIAL", "COLL"].includes(k)) { const f = financeFor();
     return k === "REV" ? { value: `${fmt(f.revenue, 1)} M`, status: f.st.rev } : k === "AR" ? { value: `${fmt(f.arDays)} hari`, status: f.st.ar }

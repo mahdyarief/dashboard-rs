@@ -373,6 +373,10 @@ const definitions = {
         target:"≤45‰", basis:"Praktik Depkes 2005 · SIRS RL 3.1", source:"SIMRS" },
   NDR:{ name:"Net Death Rate", formula:"Kematian ≥48 jam ÷ pasien keluar × 1.000",
         target:"≤25‰", basis:"Praktik Depkes 2005 · SIRS RL 3.1", source:"SIMRS" },
+  APS:{ name:"Pulang atas permintaan sendiri (APS/DAMA)", formula:"Pasien pulang APS ÷ seluruh pasien keluar rawat inap × 100%",
+        target:"<2%", basis:"Internal — usulan target RS, perlu ditetapkan komite medik", source:"SIMRS" },
+  KOMPLAIN:{ name:"Komplain pasien diterima", formula:"Jumlah komplain tertulis dan lisan yang tercatat di modul pengaduan per periode",
+        target:"≤10 per bulan", basis:"Internal — usulan target RS, perlu ditetapkan direksi", source:"SIMRS modul pengaduan" },
   READM:{ name:"Readmisi 30 hari", formula:"Pasien dirawat ulang ≤30 hari dengan diagnosis terkait ÷ pasien keluar hidup × 100%",
           target:"<5%", basis:"Internal — usulan target RS, perlu ditetapkan komite medik", source:"SIMRS" },
   INM:{ name:"Indikator Nasional Mutu", formula:"13 indikator wajib RS",
@@ -583,13 +587,14 @@ hr.shiftHeat = {
 
 // Bed board: okupansi per unit × 4 jendela jam
 capacity.bedBoard = [
-  { unit:"ICU",           beds:12, occupied:[10,11,12,12], clean:1, hold:0 },
-  { unit:"HCU",           beds:18, occupied:[15,16,17,16], clean:1, hold:0 },
-  { unit:"Rawat Inap A",  beds:40, occupied:[35,36,37,35], clean:3, hold:2 },
-  { unit:"Rawat Inap B",  beds:44, occupied:[34,35,36,34], clean:4, hold:1 },
-  { unit:"Rawat Inap C",  beds:38, occupied:[28,29,30,28], clean:5, hold:0 },
-  { unit:"VIP / Paviliun",beds:22, occupied:[13,13,14,13], clean:2, hold:0 },
-  { unit:"IGD (holding)", beds:6,  occupied:[6,6,6,5],   clean:0, hold:3 }
+  /* occupied[0] = sekarang (07:42); total 157 = capacity.occupied */
+  { unit:"ICU",           beds:12, occupied:[11,12,12,11], clean:1, hold:0 },
+  { unit:"HCU",           beds:18, occupied:[16,17,17,16], clean:1, hold:0 },
+  { unit:"Rawat Inap A",  beds:40, occupied:[36,37,37,35], clean:2, hold:1 },
+  { unit:"Rawat Inap B",  beds:44, occupied:[40,40,41,39], clean:2, hold:1 },
+  { unit:"Rawat Inap C",  beds:38, occupied:[34,34,35,33], clean:3, hold:1 },
+  { unit:"VIP / Paviliun",beds:22, occupied:[14,14,15,14], clean:3, hold:0 },
+  { unit:"IGD (holding)", beds:6,  occupied:[6,6,6,5],   clean:0, hold:0 }
 ];
 
 /* definisi per INM (setelah objek definitions terbentuk) */
