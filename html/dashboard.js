@@ -163,8 +163,8 @@ function go(tab) {
 }
 
 function initSelects() {
-  $("#unitFilter").innerHTML = `<option value="all">Seluruh RS</option>` +
-    units.map(u => `<option value="${esc(u.name)}">${esc(u.name)}</option>`).join("");
+  $("#unitFilter").innerHTML = `<option value="all">Unit: Seluruh RS</option>` +
+    units.map(u => `<option value="${esc(u.name)}">Unit: ${esc(u.name)}</option>`).join("");
   $("#footerSources").textContent = "Sumber: " + RS_INFO.sources;
 
 }
