@@ -401,6 +401,32 @@ const unsetTargets = [
 ];
 
 /* ---------- Katalog jawaban asisten (pattern-matched, berbasis data) ---------- */
+/* pertanyaan cepat per tab; tab lain memakai daftar per peran di bawah */
+const quickPromptsByTab = {
+  mutu:[
+    { q:"Bagaimana status 13 INM bulan ini?", t:"Status 13 INM" },
+    { q:"Indikator mutu mana yang paling buruk?", t:"Indikator terburuk" },
+    { q:"Kenapa GDR mendekati ambang?", t:"GDR & NDR" }
+  ],
+  keuangan:[
+    { q:"Ringkas kinerja keuangan November", t:"Ringkas keuangan" },
+    { q:"Bagaimana pra-verifikasi berkas klaim?", t:"Pra-verifikasi klaim" },
+    { q:"Domain mana yang paling berisiko?", t:"Domain paling berisiko" }
+  ],
+  operasional:[
+    { q:"Kenapa BOR 87% dan apa tindakannya?", t:"BOR 87% — kenapa?" },
+    { q:"Berapa rencana pulang hari ini?", t:"Rencana pulang" },
+    { q:"Bagaimana kesiapan alat kritis dan kalibrasi?", t:"Kesiapan alat" }
+  ],
+  sdm:[
+    { q:"Bagaimana kondisi SDM dan rasio perawat?", t:"Rasio perawat" },
+    { q:"Domain mana yang paling berisiko?", t:"Domain paling berisiko" }
+  ],
+  pengalaman:[
+    { q:"Bagaimana pengalaman dan komplain pasien?", t:"Komplain pasien" },
+    { q:"Domain mana yang paling berisiko?", t:"Domain paling berisiko" }
+  ]
+};
 const quickPrompts = {
   direksi:[
     { q:"Kenapa BOR 87% dan apa tindakannya?", t:"BOR 87% — kenapa?" },
@@ -480,7 +506,7 @@ const chatKnowledge = [
 
 const chatFallback = () => ({
   lede:"Pertanyaan belum dikenali mesin demo",
-  body:`Demo ini menjawab topik: BOR/kapasitas, 13 INM/mutu, keuangan & klaim, SDM, pengalaman pasien, GDR/NDR, dan prioritas tindakan. Untuk angka di luar itu, jawaban akan diambil dari metric layer pada implementasi nyata.`,
+  body:`Demo ini menjawab topik: BOR/kapasitas, 13 INM/mutu, keuangan & klaim, SDM, pengalaman pasien, GDR/NDR, dan prioritas tindakan. Untuk angka di luar itu, jawaban akan diambil dari data indikator RS pada implementasi nyata.`,
   evidence:[], acts:[]
 });
 

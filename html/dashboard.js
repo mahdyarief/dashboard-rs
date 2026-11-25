@@ -659,24 +659,33 @@ function precheckFor() {
 }
 function precheckCards() {
   const c = precheckFor();
-  return grid("2xl:grid-cols-2", `
-    ${card({ title: "Pra-verifikasi berkas klaim", sub: `${fmt(c.verified)} berkas diperiksa sebelum dikirim`, action: `<span class="flex shrink-0 flex-wrap items-center justify-end gap-2">${badge("na")}${defBtn("PRAVER")}</span>`,
+  return card({ id: "kartu-checklist", title: "Pra-verifikasi berkas klaim", sub: `${fmt(c.verified)} berkas diperiksa sebelum dikirim`, action: `<span class="flex shrink-0 flex-wrap items-center justify-end gap-2">${badge("na")}${defBtn("PRAVER")}</span>`,
       body: `<div class="flex flex-col gap-4">
         <div class="flex flex-wrap items-end gap-x-6 gap-y-2">
           <div class="flex flex-col"><strong class="text-2xl font-semibold tabular-nums">${fmt(c.rate, 1)}<span class="ml-1 text-sm font-normal text-muted-foreground">% lolos</span></strong><span class="text-sm text-muted-foreground">${fmt(c.complete)} lengkap · ${fmt(c.verified - c.complete)} perlu perbaikan</span></div>
           <div class="flex flex-col"><strong class="text-2xl font-semibold tabular-nums">${fmt(c.avgFixItems, 1)}</strong><span class="text-sm text-muted-foreground">butir perbaikan per berkas</span></div>
         </div>
         <div class="progress h-2" role="progressbar" aria-valuenow="${Math.round(c.rate)}" aria-valuemin="0" aria-valuemax="100" aria-label="${fmt(c.rate, 1)}% berkas lolos"><span style="width:${c.rate}%"></span></div>
-        <p class="text-sm font-medium">Temuan per kategori aturan</p>
-        ${hBars({ rows: c.categories.map(x => ({ label: x.label, v: x.n })), unit: "×", label: "Temuan pra-verifikasi per kategori", highlight: [0], highlightColor: "emph" })}
+        <div class="flex flex-col gap-2">
+          <h4 class="text-sm font-medium">Temuan per kategori aturan</h4>
+          <ul class="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">${c.categories.map((x, i) => `
+            <li class="flex flex-col gap-1">
+              <span class="flex justify-between gap-2 text-sm"><span class="${i ? "text-muted-foreground" : "font-medium"}">${esc(x.label)}</span><span class="tabular-nums ${i ? "text-muted-foreground" : "font-medium"}">${fmt(x.n)}×</span></span>
+              <div class="progress h-1.5" role="progressbar" aria-valuenow="${x.n}" aria-valuemin="0" aria-valuemax="${c.categories[0].n}" aria-label="${esc(x.label)}: ${fmt(x.n)} temuan"><span style="width:${Math.round(x.n / c.categories[0].n * 100)}%"></span></div>
+            </li>`).join("")}</ul>
+        </div>
+        <div class="flex flex-col gap-2 border-t pt-4">
+          <h4 class="text-sm font-medium">Butir checklist paling sering gagal <span class="font-normal text-muted-foreground">· 2 terbanyak disorot</span></h4>
+          ${checklistChart(c)}
+        </div>
       </div>`,
-      foot: sourceFoot(c.source, "Kategori: Aturan Coding Medis, Aturan Klinis, Berita Acara Kesepakatan, Peraturan Menteri Kesehatan. Coding medis searah dengan penyebab denial terbesar (kode INA-CBG tidak sesuai). Target belum ditetapkan karena aturan Complete/Incomplete belum diketahui.") })}
-    ${checklistCard(c)}`);
+      foot: sourceFoot(c.source, "Kategori: Aturan Coding Medis, Aturan Klinis, Berita Acara Kesepakatan, Peraturan Menteri Kesehatan. Coding medis searah dengan penyebab denial terbesar (kode INA-CBG tidak sesuai). Target belum ditetapkan karena aturan Complete/Incomplete belum diketahui.") });
 }
 /* antrean perbaikan berkas: dipakai di Keuangan (direksi) dan Operasional (kepala unit) */
+const checklistChart = c => hBars({ rows: c.checklistFails.map(x => ({ label: x.label, v: x.n })), unit: "×", label: "Butir checklist klaim gagal", highlight: [0, 1], highlightColor: "emph" });
 function checklistCard(c = precheckFor()) {
-  return card({ id: "kartu-checklist", title: "Butir checklist paling sering gagal", sub: "dari 10 butir kelengkapan berkas · 2 terbanyak disorot",
-    body: hBars({ rows: c.checklistFails.map(x => ({ label: x.label, v: x.n })), unit: "×", label: "Butir checklist klaim gagal", highlight: [0, 1], highlightColor: "emph" }),
+  return card({ title: "Butir checklist paling sering gagal", sub: "dari 10 butir kelengkapan berkas · 2 terbanyak disorot",
+    body: checklistChart(c),
     foot: sourceFoot(c.source, "Perbaiki butir ini sebelum berkas dikirim ke BPJS untuk menekan denial.") });
 }
 
@@ -933,7 +942,6 @@ function breadcrumb() {
           : `<button type="button" class="hover:text-foreground hover:underline" data-crumb="${p.crumb}">${esc(p.label)}</button>`}</li>`;
       }).join("")}</ol>
     </nav>
-    <span class="badge" data-variant="secondary">Level: ${level}</span>
   </div>`;
 }
 
@@ -1032,6 +1040,7 @@ function renderNow() {
   const tab = TABS.find(t => t.id === state.tab);
   $("#pageTitle").textContent = tab.label;
   $("#scopeChip").textContent = scopeText();
+  renderQuick();
   $("#periodLabel").textContent = P().range;
   $$("#periodGroup [data-period]").forEach(b => { const on = b.dataset.period === state.period; b.dataset.variant = on ? "primary" : "outline"; b.setAttribute("aria-pressed", String(on)); });
   document.title = `${tab.label} — RS Nusantara`;
@@ -1083,7 +1092,10 @@ function scrollStream() { const s = $("#stream"); s.scrollTop = s.scrollHeight; 
 function resetChat() {
   $("#stream").innerHTML = "";
   pushBot({ lede: "Asisten data RS Nusantara", body: `${roleIntro[state.role]}<br><span class="text-muted-foreground">Prototipe memakai data mock; bukan alat medis.</span>` });
-  const prompts = quickPrompts[state.role] || quickPrompts.direksi;
+  renderQuick();
+}
+function renderQuick() {
+  const prompts = quickPromptsByTab[state.tab] || quickPrompts[state.role] || quickPrompts.direksi;
   $("#quick").innerHTML = prompts.map(p => `<button type="button" class="btn" data-variant="outline" data-size="sm" data-q="${esc(p.q)}">${esc(p.t)}</button>`).join("");
 }
 
@@ -1156,7 +1168,7 @@ function showDefinition(k) {
     ${row("Dasar target", esc(d.basis))}
     ${row("Sumber data", esc(d.source))}
     ${row("Sinkron terakhir", esc(RS_INFO.updated))}
-    ${row("Asal angka", "Metric layer (tidak dihitung ulang oleh asisten)")}
+    ${row("Asal angka", "Data indikator RS (tidak dihitung ulang oleh asisten)")}
   </dl>`;
   $("#defAsk").dataset.defk = k;
   const dlg = $("#defDialog");
