@@ -269,10 +269,10 @@ function trendChart({ series, labels, band, target, unit = "", label, height = 2
       yaxis: [
         ...(band ? [{ y: band[0], y2: band[1], fillColor: C.soft(), opacity: 0.18, borderColor: "transparent",
           label: { text: `Target ${fmt(band[0])}–${fmt(band[1])}${unit}`, position: "left", textAnchor: "start", offsetX: 6,
-            style: { background: "transparent", color: C.muted(), fontSize: "11px" }, borderColor: "transparent" } }] : []),
+            style: { background: "transparent", color: C.muted(), fontSize: "12px" }, borderColor: "transparent" } }] : []),
         ...(target != null ? [{ y: target, borderColor: C.crit(), strokeDashArray: 5,
           label: { text: `Target ${fmt(target, Number.isInteger(target) ? 0 : 1)}${unit}`, position: "left", textAnchor: "start", offsetX: 6,
-            style: { background: C.crit(), color: C.onCrit(), fontSize: "11px" }, borderColor: C.crit() } }] : [])
+            style: { background: C.crit(), color: C.onCrit(), fontSize: "12px" }, borderColor: C.crit() } }] : [])
       ]
     }
   }), height);
@@ -300,7 +300,7 @@ function columnChart({ labels, values, target, unit = "", label, height = 260 })
     yaxis: { tickAmount: 4, labels: { formatter: v => fmt(v) } },
     tooltip: { y: { formatter: v => fmt(v) + unit } },
     annotations: target != null ? { yaxis: [{ y: target, borderColor: C.crit(), strokeDashArray: 5,
-      label: { text: `Ambang ${target}${unit}`, position: "left", textAnchor: "start", offsetX: 6, style: { background: C.crit(), color: C.onCrit(), fontSize: "11px" }, borderColor: C.crit() } }] } : {}
+      label: { text: `Ambang ${target}${unit}`, position: "left", textAnchor: "start", offsetX: 6, style: { background: C.crit(), color: C.onCrit(), fontSize: "12px" }, borderColor: C.crit() } }] } : {}
   }), height);
 }
 
@@ -308,7 +308,7 @@ function hBars({ rows, unit = "", label, highlight = [], highlightColor = "crit"
   const hgt = height || Math.max(160, rows.length * 38 + 40);
   return chart(label, h => merge(baseOpts("bar", h), {
     series: [{ name: label, data: rows.map(r => r.v) }],
-    colors: rows.map((_, i) => (highlight.includes(i) ? (highlightColor === "crit" ? C.crit() : C.warn()) : C.main())),
+    colors: rows.map((_, i) => (highlight.includes(i) ? (highlightColor === "crit" ? C.crit() : highlightColor === "deep" ? C.deep() : C.warn()) : C.main())),
     plotOptions: { bar: { horizontal: true, distributed: true, barHeight: "62%", borderRadius: 3, dataLabels: { position: "top" } } },
     dataLabels: { enabled: true, formatter: v => fmt(v, dec) + unit, offsetX: 26, style: { colors: [C.fg()], fontSize: "12px", fontWeight: 500 } },
     xaxis: { categories: rows.map(r => r.label), min: 0, max: Math.max(...rows.map(r => r.v)) * 1.25, labels: { formatter: v => fmt(v, dec) } },
@@ -336,7 +336,7 @@ function heatmap({ rows, cols, ranges, unit = "", label, height }) {
   return chart(label, h => merge(baseOpts("heatmap", h), {
     series: rows.slice().reverse().map(r => ({ name: r.label, data: r.v.map((y, i) => ({ x: cols[i], y })) })),
     plotOptions: { heatmap: { radius: 3, enableShades: false, colorScale: { ranges: ranges() } } },
-    dataLabels: { enabled: true, style: { fontSize: "11px", fontWeight: 600, colors: [isDark() ? col("--background") : col("--foreground")] } },
+    dataLabels: { enabled: true, style: { fontSize: "12px", fontWeight: 600, colors: [isDark() ? col("--background") : col("--foreground")] } },
     stroke: { width: 2, colors: [col("--card")] },
     xaxis: { labels: { rotate: 0 }, axisBorder: { show: false }, axisTicks: { show: false } },
     tooltip: { y: { formatter: v => fmt(v) + unit } },
@@ -443,7 +443,7 @@ const domainRisk = [
 function itemList(rows) {
   return `<div class="flex flex-col divide-y divide-border">${rows.map(r => `
     <${r.go ? `button type="button" data-go="${r.go}"` : "div"} class="item rounded-none px-1 text-left ${r.go ? "transition-colors hover:bg-muted/50" : ""}" data-size="sm">
-      <section class="min-w-0 basis-48"><h3>${esc(r.title)}</h3>${r.desc ? `<p class="line-clamp-none">${esc(r.desc)}</p>` : ""}</section>
+      <section class="min-w-0 basis-48"><h3 class="text-balance">${esc(r.title)}</h3>${r.desc ? `<p class="line-clamp-none">${esc(r.desc)}</p>` : ""}</section>
       <aside>${r.badge}</aside>
     </${r.go ? "button" : "div"}>`).join("")}</div>`;
 }
@@ -530,11 +530,11 @@ function boxplot() {
     plotOptions: { boxPlot: { colors: { upper: col("--chart-1", 0.55), lower: C.main() } }, bar: { columnWidth: "45%" } },
     stroke: { colors: [C.fg()], width: 1 },
     markers: { size: 5 },
-    xaxis: { type: "category", labels: { rotate: 0, hideOverlappingLabels: false, style: { fontSize: "11px" } } },
+    xaxis: { type: "category", labels: { rotate: 0, hideOverlappingLabels: false, style: { fontSize: "12px" } } },
     yaxis: { tickAmount: 4, labels: { formatter: v => fmt(v) } },
     legend: { show: false },
     annotations: { yaxis: [{ y: d.target, borderColor: C.crit(), strokeDashArray: 5,
-      label: { text: `Target ${d.target}‰`, position: "left", textAnchor: "start", offsetX: 6, style: { background: C.crit(), color: C.onCrit(), fontSize: "11px" }, borderColor: C.crit() } }] }
+      label: { text: `Target ${d.target}‰`, position: "left", textAnchor: "start", offsetX: 6, style: { background: C.crit(), color: C.onCrit(), fontSize: "12px" }, borderColor: C.crit() } }] }
   }), 280);
 }
 
@@ -547,7 +547,7 @@ function funnelChart() {
     dataLabels: { enabled: true, formatter: (v, o) => {
       const i = o.dataPointIndex;
       return i ? `${s[i].label}: ${v} (${fmt(v / s[i - 1].n * 100)}%)` : `${s[0].label}: ${v}`;
-    }, style: { fontSize: "11px", fontWeight: 500 }, dropShadow: { enabled: false } },
+    }, style: { fontSize: "12px", fontWeight: 500 }, dropShadow: { enabled: false } },
     xaxis: { categories: s.map(x => x.label) },
     legend: { show: false }
   }), 280);
@@ -612,7 +612,7 @@ function scatterBj() {
     colors: [C.ok(), C.warn(), C.crit()],
     markers: { size: 8, strokeWidth: 2, strokeColors: col("--card") },
     dataLabels: { enabled: true, offsetY: -10, formatter: (v, o) => o.w.config.series[o.seriesIndex].data[o.dataPointIndex].name,
-      background: { enabled: false }, style: { fontSize: "11px", fontWeight: 500, colors: [C.fg()] } },
+      background: { enabled: false }, style: { fontSize: "12px", fontWeight: 500, colors: [C.fg()] } },
     xaxis: { type: "numeric", min: 40, max: 100, tickAmount: 6, title: { text: "BOR (%)", style: { fontWeight: 500 } }, labels: { formatter: v => fmt(v) } },
     yaxis: { min: 0, max: 12, tickAmount: 4, title: { text: "ALOS (hari)", style: { fontWeight: 500 } }, labels: { formatter: v => fmt(v) } },
     tooltip: { custom: ({ seriesIndex, dataPointIndex, w }) => {
@@ -657,21 +657,24 @@ function precheckFor() {
 function precheckCards() {
   const c = precheckFor();
   return grid("2xl:grid-cols-2", `
-    ${card({ title: "Pra-verifikasi berkas klaim", sub: `${fmt(c.verified)} berkas diperiksa sebelum dikirim`, action: defBtn("PRAVER"),
+    ${card({ title: "Pra-verifikasi berkas klaim", sub: `${fmt(c.verified)} berkas diperiksa sebelum dikirim`, action: `<span class="flex shrink-0 flex-wrap items-center justify-end gap-2">${badge("na")}${defBtn("PRAVER")}</span>`,
       body: `<div class="flex flex-col gap-4">
         <div class="flex flex-wrap items-end gap-x-6 gap-y-2">
-          <div class="flex flex-col"><strong class="text-2xl font-semibold tabular-nums">${fmt(c.rate, 1)}<span class="ml-1 text-sm font-normal text-muted-foreground">% lolos</span></strong><span class="text-sm text-muted-foreground">${fmt(c.complete)} Complete · ${fmt(c.verified - c.complete)} Incomplete</span></div>
+          <div class="flex flex-col"><strong class="text-2xl font-semibold tabular-nums">${fmt(c.rate, 1)}<span class="ml-1 text-sm font-normal text-muted-foreground">% lolos</span></strong><span class="text-sm text-muted-foreground">${fmt(c.complete)} lengkap · ${fmt(c.verified - c.complete)} perlu perbaikan</span></div>
           <div class="flex flex-col"><strong class="text-2xl font-semibold tabular-nums">${fmt(c.avgFixItems, 1)}</strong><span class="text-sm text-muted-foreground">butir perbaikan per berkas</span></div>
-          ${badge("na")}
         </div>
         <div class="progress h-2" role="progressbar" aria-valuenow="${Math.round(c.rate)}" aria-valuemin="0" aria-valuemax="100" aria-label="${fmt(c.rate, 1)}% berkas lolos"><span style="width:${c.rate}%"></span></div>
         <p class="text-sm font-medium">Temuan per kategori aturan</p>
-        ${hBars({ rows: c.categories.map(x => ({ label: x.label, v: x.n })), unit: "×", label: "Temuan pra-verifikasi per kategori", highlight: [0] })}
+        ${hBars({ rows: c.categories.map(x => ({ label: x.label, v: x.n })), unit: "×", label: "Temuan pra-verifikasi per kategori", highlight: [0], highlightColor: "deep" })}
       </div>`,
       foot: sourceFoot(c.source, "Kategori: Aturan Coding Medis, Aturan Klinis, Berita Acara Kesepakatan, Peraturan Menteri Kesehatan. Coding medis searah dengan penyebab denial terbesar (kode INA-CBG tidak sesuai). Target belum ditetapkan karena aturan Complete/Incomplete belum diketahui.") })}
-    ${card({ title: "Butir checklist paling sering gagal", sub: "dari 10 butir kelengkapan berkas",
-      body: hBars({ rows: c.checklistFails.map(x => ({ label: x.label, v: x.n })), unit: "×", label: "Butir checklist klaim gagal", highlight: [0, 1], highlightColor: "warn" }),
-      foot: "Perbaiki butir ini sebelum berkas dikirim ke BPJS untuk menekan denial rate." })}`);
+    ${checklistCard(c)}`);
+}
+/* antrean perbaikan berkas: dipakai di Keuangan (direksi) dan Operasional (kepala unit) */
+function checklistCard(c = precheckFor()) {
+  return card({ title: "Butir checklist paling sering gagal", sub: "dari 10 butir kelengkapan berkas · 2 terbanyak ditandai navy",
+    body: hBars({ rows: c.checklistFails.map(x => ({ label: x.label, v: x.n })), unit: "×", label: "Butir checklist klaim gagal", highlight: [0, 1], highlightColor: "deep" }),
+    foot: sourceFoot(c.source, "Perbaiki butir ini sebelum berkas dikirim ke BPJS untuk menekan denial.") });
 }
 
 function equipmentFor() {
@@ -728,7 +731,7 @@ function renderOperasional() {  return `
         { title: "ICU", desc: "92% · 11/12 bed", badge: badge("crit", "Kritis") },
         { title: "HCU", desc: "89% · 16/18 bed", badge: badge("warn", "Pantau") },
         { title: "Rawat Inap A", desc: "88% · 35/40 bed", badge: badge("warn", "Pantau") },
-        { title: "VIP / Paviliun", desc: "58% · 13/22 bed", badge: badge("ok", "LONGGAR") }]) })}
+        { title: "VIP / Paviliun", desc: "58% · 13/22 bed", badge: badge("ok", "Longgar") }]) })}
     </div>`)}
   ${card({ title: "Indikator rawat inap per unit", sub: "klik unit untuk memfilter", body: unitTable(),
     foot: "BTO dan TOI lebih berguna dibaca bersama pada Barber Johnson daripada sebagai angka terpisah." })}
@@ -738,6 +741,7 @@ function renderOperasional() {  return `
     ${card({ title: "Tren okupansi", sub: `BOR % · ${gran("14 hari terakhir")}`, body: trendChart({ series: [{ name: "BOR harian", data: capacity.occupancySeries }], labels: capacity.occupancyLabels, band: [60, 85], unit: "%" }) })}
     ${card({ title: "Pasien prioritas", sub: "drill-down unit", body: priorityTable(priorityPatients.filter(p => state.unit === "all" || p.unit === state.unit).slice(0, 5)),
       foot: "Daftar penuh tersedia untuk kepala unit sesuai RBAC." })}`)}
+  ${state.role === "unit" ? grid("2xl:grid-cols-2", `${checklistCard()}${card({ title: "Kenapa ini di Operasional", body: `<p class="text-sm leading-relaxed">Resume medis, SEP, dan kewajaran LOS disiapkan di unit. Butir yang gagal pra-verifikasi adalah antrean perbaikan berkas sebelum klaim dikirim; angka keuangannya ada di tab Keuangan untuk direksi.</p>` })}`) : ""}
   ${renderEquipment()}`;
 }
 
@@ -749,11 +753,12 @@ function waterfall(components, total, target) {
     series: [{ name: "Pendapatan", data }],
     colors: [({ dataPointIndex }) => (dataPointIndex === data.length - 1 ? C.deep() : C.main())],
     plotOptions: { bar: { horizontal: true, barHeight: "60%", borderRadius: 3 } },
-    dataLabels: { enabled: true, formatter: (v, o) => { const y = data[o.dataPointIndex].y; return fmt(y[1] - y[0], 1) + " M"; }, style: { fontSize: "11px" } },
+    dataLabels: { enabled: true, formatter: (v, o) => { const y = data[o.dataPointIndex].y; return fmt(y[1] - y[0], 1) + " M"; }, style: { fontSize: "12px", fontWeight: 500, colors: [C.fg()] },
+      background: { enabled: true, foreColor: col("--card"), borderWidth: 0, borderRadius: 3, padding: 4, opacity: 0.92, dropShadow: { enabled: false } }, dropShadow: { enabled: false } },
     xaxis: { min: 0, max: Math.max(total, target) * 1.05, labels: { formatter: v => fmt(v) } },
     tooltip: { custom: ({ dataPointIndex }) => { const p = data[dataPointIndex]; return `<div class="px-3 py-2 text-xs"><b>${esc(p.x)}</b>: ${fmt(p.y[1] - p.y[0], 1)} M</div>`; } },
     annotations: { xaxis: [{ x: target, borderColor: C.crit(), strokeDashArray: 5,
-      label: { text: `Target ${fmt(target, 1)} M`, orientation: "horizontal", style: { background: C.crit(), color: C.onCrit(), fontSize: "11px" }, borderColor: C.crit() } }] }
+      label: { text: `Target ${fmt(target, 1)} M`, orientation: "horizontal", style: { background: C.crit(), color: C.onCrit(), fontSize: "12px" }, borderColor: C.crit() } }] }
   }), Math.max(220, data.length * 44 + 40));
 }
 
@@ -763,35 +768,56 @@ function renderKeuangan() {
   const f = { ...finance, revenueComponents: comps, revenue: Math.round(comps.reduce((a, c) => a + c.v, 0) * 10) / 10, revenueTarget: exact(finance.revenueTarget),
     pendingClaims: pc(finance.pendingClaims, 2), arDays: pv("ar", finance.arDays, 0.05), denialRate: pv("den", finance.denialRate, 0.08), collectionRate: pv("col", finance.collectionRate, 0.01),
     denialPareto: finance.denialPareto.map(d => ({ ...d, n: pc(d.n) })) };
+  /* status selalu dihitung dari target, tidak pernah ditulis tangan */
+  const st = {
+    rev: statusFromTarget("≥" + f.revenueTarget, f.revenue),
+    ar: statusFromTarget("≤" + f.arTarget, f.arDays),
+    den: statusFromTarget("≤" + f.denialTarget, f.denialRate),
+    col: statusFromTarget("≥95", f.collectionRate)
+  };
+  const vsTarget = s => s === "ok" ? "Sesuai target" : s === "warn" ? "Di bawah target" : "Di luar target";
   const denialTotal = f.denialPareto.reduce((a, d) => a + d.n, 0);
+  const claimsTotal = pc(1024), denied = Math.round(claimsTotal * f.denialRate / 100);
+  const reconcile = pc(34), docs = pc(22);
+  const gap = Math.max(0, f.revenueTarget - f.revenue);
+  const cover = gap ? Math.min(100, f.pendingClaims / gap * 100) : 100;
+  const agingTotal = f.aging.reduce((a, x) => a + x.v, 0), aged = f.aging.slice(2).reduce((a, x) => a + x.v, 0);
+  const old90 = f.aging[f.aging.length - 1].v / agingTotal * 100;
+  const unitNote = state.unit === "all" ? "" : ` · keuangan dihitung di tingkat RS, bukan per unit`;
+  const verdict = gap
+    ? `Pendapatan kurang <b class="tabular-nums">${fmt(gap, 1)} M</b> dari target. Klaim tertahan <b class="tabular-nums">${fmt(f.pendingClaims, 2)} M</b> dapat menutup ${fmt(cover, 0)}% selisih bila rekonsiliasi kode INA-CBG selesai.`
+    : `Pendapatan mencapai target. Klaim tertahan <b class="tabular-nums">${fmt(f.pendingClaims, 2)} M</b> tetap perlu direkonsiliasi.`;
   return `
-  ${sectionHead("Keuangan & siklus klaim", `${P().range} · miliar rupiah`, scopeText())}
+  ${sectionHead("Keuangan & siklus klaim", `${P().range} · miliar rupiah${unitNote}`, "seluruh RS")}
   ${grid("sm:grid-cols-2 2xl:grid-cols-4", `
-    ${simpleMetric({ label:"Pendapatan", value:fmt(f.revenue, 1), unit:"M", target:fmt(f.revenueTarget, 1) + " M", status:"warn", note:`Tercapai ${fmt(f.revenue / f.revenueTarget * 100, 1)}% target.` })}
-    ${simpleMetric({ label:"AR days", value:fmt(f.arDays), unit:"hari", target:"≤" + f.arTarget, status:"warn", note:"Piutang 3,9 M; 12% berumur >90 hari." })}
-    ${simpleMetric({ label:"Denial klaim", value:fmt(f.denialRate, 1), unit:"%", target:"≤" + fmt(f.denialTarget, 1) + "%", status:"warn", note:"Kode INA-CBG tidak sesuai mendominasi." })}
-    ${simpleMetric({ label:"Collection rate", value:fmt(f.collectionRate, 1), unit:"%", target:"≥95%", status:"warn", note:"Klaim tertahan " + fmt(f.pendingClaims, 2) + " M." })}`)}
+    ${simpleMetric({ k:"REV", label:"Pendapatan", value:fmt(f.revenue, 1), unit:"M", target:fmt(f.revenueTarget, 1) + " M", status: st.rev, note:`Tercapai ${fmt(f.revenue / f.revenueTarget * 100, 1)}% target.` })}
+    ${simpleMetric({ k:"AR", label:"Hari piutang (AR days)", value:fmt(f.arDays), unit:"hari", target:"≤" + f.arTarget + " hari", status: st.ar, note:`Piutang ${fmt(agingTotal, 2)} M; ${fmt(old90, 0)}% berumur >90 hari.` })}
+    ${simpleMetric({ k:"DENIAL", label:"Klaim ditolak (denial)", value:fmt(f.denialRate, 1), unit:"%", target:"≤" + fmt(f.denialTarget, 1) + "%", status: st.den, note:`${fmt(denied)} dari ${fmt(claimsTotal)} klaim; kode INA-CBG tidak sesuai mendominasi.` })}
+    ${simpleMetric({ k:"COLL", label:"Tingkat penagihan (collection rate)", value:fmt(f.collectionRate, 1), unit:"%", target:"≥95%", status: st.col, note:"Klaim tertahan " + fmt(f.pendingClaims, 2) + " M." })}`)}
+  <div role="alert" class="alert">${icon(gap ? "alert" : "check")}<h3>Ringkasan keuangan ${esc(P().label.toLowerCase())}</h3><section><p>${verdict}</p></section></div>
+  ${grid("2xl:grid-cols-2", `
+    ${card({ title: "Tindak lanjut arus kas", sub: "3 langkah · pemilik dan tenggat", body: itemList([
+      { title: `Rekonsiliasi ${fmt(reconcile)} klaim kode INA-CBG`, desc: "Casemix & Manajer Keuangan · tenggat 5 Des", badge: badge("crit", "Prioritas") },
+      { title: `Lengkapi ${fmt(docs)} berkas klaim tertahan`, desc: "Kepala unit rawat inap & IGD · resume medis, SEP", badge: badge("warn", "Pantau") },
+      { title: `Tagih piutang >60 hari (${fmt(aged, 2)} M)`, desc: `Manajer Keuangan · collection rate ${fmt(f.collectionRate, 1)}%, target ≥95%`, badge: badge(st.col, vsTarget(st.col)) }]),
+      foot: sourceFoot("Klaim BPJS · billing internal", `Denial ${fmt(f.denialRate, 1)}% setara ${fmt(denied)} dari ${fmt(claimsTotal)} klaim periode ini.`) })}
+    ${card({ title: "Penyebab denial klaim", sub: `${fmt(denialTotal)} klaim ditolak · terbanyak ditandai navy`,
+      body: hBars({ rows: f.denialPareto.map(d => ({ label: d.label, v: d.n })), unit: "×", label: "Penyebab denial klaim", highlight: [0], highlightColor: "deep" }),
+      foot: sourceFoot("Klaim BPJS (e-klaim)", "Penyebab terbanyak searah dengan temuan pra-verifikasi Coding medis di bawah.") })}`)}
+  ${precheckCards()}
+  ${grid("2xl:grid-cols-2", `
+    ${card({ title: "Tren pendapatan vs target", sub: `miliar rupiah · ${gran(f.trendLabels.length + " bulan")} · sumbu tidak mulai dari nol`,
+      body: trendChart({ series: [{ name: "Realisasi", data: f.revenueSeries.map(v => v * P().perPoint) }, { name: state.period === "today" ? "Target per 2 jam" : state.period === "week" ? "Target harian" : "Target bulanan", data: f.revenueTargetSeries.map(v => v * P().perPoint) }], labels: f.trendLabels, unit: " M" }),
+      foot: sourceFoot("Billing internal", gap ? `Selisih ${fmt(gap, 1)} M terhadap target periode ini; klaim tertahan ${fmt(f.pendingClaims, 2)} M menutup ${fmt(cover, 0)}% di antaranya.` : "Realisasi di atas target periode ini.") })}
+    ${card({ title: "Tren hari piutang", sub: `hari · target ≤${f.arTarget}`,
+      body: trendChart({ series: [{ name: "AR days", data: f.arSeries }], labels: f.trendLabels, target: f.arTarget, unit: " hari" }),
+      foot: sourceFoot("Billing internal · klaim BPJS", "Naik sejak Juni seiring denial INA-CBG; turunkan lewat rekonsiliasi klaim sebelum 5 Des.") })}`)}
   ${grid("2xl:grid-cols-5", `
     <div class="min-w-0 2xl:col-span-3">${card({ title: "Komposisi pendapatan", sub: `vs target ${fmt(f.revenueTarget, 1)} M`, body: waterfall(f.revenueComponents, f.revenue, f.revenueTarget),
-      foot: `Garis putus-putus = target. Rawat inap menyumbang ${fmt(f.revenueComponents[0].v / f.revenue * 100, 1)}% pendapatan.` })}</div>
-    <div class="min-w-0 2xl:col-span-2">${card({ title: "Umur piutang", sub: "total 3,93 M",
+      foot: sourceFoot("Billing internal", `Garis putus-putus = target. Rawat inap menyumbang ${fmt(f.revenueComponents[0].v / f.revenue * 100, 1)}% pendapatan.`) })}</div>
+    <div class="min-w-0 2xl:col-span-2">${card({ title: "Umur piutang", sub: `posisi saat ini · total ${fmt(agingTotal, 2)} M · >60 hari ditandai navy`,
       body: hBars({ rows: f.aging.map(a => ({ label: a.bucket, v: a.v })), unit: " M", dec: 2, label: "Umur piutang", highlight: f.aging.map((_, i) => i).filter(i => i >= 2), highlightColor: "deep" }),
-      foot: "Prioritas: rekonsiliasi klaim BPJS periode Sep–Okt." })}</div>`)}
-  ${grid("2xl:grid-cols-2", `
-    ${card({ title: "Tren pendapatan vs target", sub: `miliar rupiah · ${gran(f.trendLabels.length + " bulan")}`,
-      body: trendChart({ series: [{ name: "Realisasi", data: f.revenueSeries.map(v => v * P().perPoint) }, { name: state.period === "today" ? "Target per 2 jam" : state.period === "week" ? "Target harian" : "Target bulanan", data: f.revenueTargetSeries.map(v => v * P().perPoint) }], labels: f.trendLabels, unit: " M" }),
-      foot: `Selisih melebar sejak Agustus (−1,6 M di November); klaim tertahan ${fmt(f.pendingClaims, 2)} M menutup sebagian besar gap.` })}
-    ${card({ title: "Tren AR days", sub: `hari · target ≤${f.arTarget}`,
-      body: trendChart({ series: [{ name: "AR days", data: f.arSeries }], labels: f.trendLabels, target: f.arTarget, unit: " hari" }),
-      foot: "Naik dari 30 hari (Jun) ke 38 hari (Nov) seiring denial INA-CBG; turunkan lewat rekonsiliasi klaim sebelum 5 Des." })}`)}
-  ${grid("2xl:grid-cols-2", `
-    ${card({ title: "Penyebab denial klaim", sub: `${denialTotal} klaim`, body: hBars({ rows: f.denialPareto.map(d => ({ label: d.label, v: d.n })), unit: "×", label: "Penyebab denial klaim", highlight: [0] }) })}
-    ${card({ title: "Tindak lanjut arus kas", sub: "3 langkah", body: itemList([
-      { title: "Rekonsiliasi 34 klaim kode INA-CBG", desc: "target selesai 5 Des", badge: badge("crit", "PRIORITAS") },
-      { title: "Lengkapi 22 dokumen klaim tertahan", desc: "verifikasi berkas", badge: badge("warn", "Pantau") },
-      { title: "Collection rate 94,2%", desc: "di atas 90%, di bawah target 95%", badge: badge("ok", "Stabil") }]),
-      foot: "Denial rate 8,2% setara 84 dari 1.024 klaim bulan ini." })}`)}
-  ${precheckCards()}`;
+      foot: sourceFoot("Billing internal", "Prioritas: rekonsiliasi klaim BPJS periode Sep–Okt.") })}</div>`)}`;
 }
 
 function renderSDM() {
@@ -1101,6 +1127,11 @@ function currentValue(k) {
     if (k === "ALATKRIT") return { value: e.readyPct == null ? "–" : `${fmt(e.readyPct, 1)} %`, status: e.readyPct == null ? "na" : statusFromTarget("≥" + e.readyTarget, e.readyPct) };
     if (k === "KALIB") return { value: `${fmt(e.calibPct, 1)} %`, status: "na" };
     return { value: `${e.excursions} kejadian`, status: e.excursions ? "warn" : "ok" }; }
+  if (k === "AR") { const v = pv("ar", finance.arDays, 0.05); return { value: `${fmt(v)} hari`, status: statusFromTarget("≤" + finance.arTarget, v) }; }
+  if (k === "DENIAL") { const v = pv("den", finance.denialRate, 0.08); return { value: `${fmt(v, 1)} %`, status: statusFromTarget("≤" + finance.denialTarget, v) }; }
+  if (k === "COLL") { const v = pv("col", finance.collectionRate, 0.01); return { value: `${fmt(v, 1)} %`, status: statusFromTarget("≥95", v) }; }
+  if (k === "REV") { const v = Math.round(finance.revenueComponents.reduce((t, c) => t + pc(c.v, 2), 0) * 10) / 10, t = isMonth() ? finance.revenueTarget : Math.round(finance.revenueTarget * P().factor * 10) / 10;
+    return { value: `${fmt(v, 1)} M`, status: statusFromTarget("≥" + t, v) }; }
   const u = unsetTargets.find(x => x.k === k);
   if (u) return { value: `${u.value} ${u.unit}`, status: "na" };
   return null;
@@ -1152,9 +1183,9 @@ function exportCsv() {
     rows.push(["Unit " + u.name, "TOI", n(u.toi), "hari", "1–3", statusLabel(u.status)]);
     rows.push(["Unit " + u.name, "BTO", n(u.bto), "kali/tahun", "40–50", statusLabel(u.status)]);
   });
-  rows.push(["Keuangan", "Pendapatan", n(finance.revenue), "miliar", n(finance.revenueTarget), "Waspada"]);
-  rows.push(["Keuangan", "AR days", n(finance.arDays), "hari", "≤" + finance.arTarget, "Waspada"]);
-  rows.push(["Keuangan", "Denial klaim", n(finance.denialRate), "%", "≤" + n(finance.denialTarget), "Waspada"]);
+  rows.push(["Keuangan", "Pendapatan", n(finance.revenue), "miliar", n(finance.revenueTarget), statusLabel(statusFromTarget("≥" + finance.revenueTarget, finance.revenue))]);
+  rows.push(["Keuangan", "AR days", n(finance.arDays), "hari", "≤" + finance.arTarget, statusLabel(statusFromTarget("≤" + finance.arTarget, finance.arDays))]);
+  rows.push(["Keuangan", "Denial klaim", n(finance.denialRate), "%", "≤" + n(finance.denialTarget), statusLabel(statusFromTarget("≤" + finance.denialTarget, finance.denialRate))]);
   { const c = precheckFor(); rows.push(["Keuangan", "Pra-verifikasi klaim lolos (ValidAI, mock)", n(fmt(c.rate, 1)), "%", "belum ditetapkan", statusLabel("na")]);
     c.categories.forEach(x => rows.push(["Pra-verifikasi klaim", "Temuan: " + x.label, x.n, "temuan", "", ""])); }
   { const e = equipmentFor();
