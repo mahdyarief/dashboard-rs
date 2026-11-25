@@ -17,9 +17,9 @@ const docsContent = {
     colorsTitle: "Cara membaca warna",
     colorsRefs:["jayawardena","depkes","inm"],
     colors: [
-      { status:"ok", label:"ON-TARGET", text:"Aman. Angkanya sudah sesuai target." },
-      { status:"warn", label:"WATCH", text:"Perlu diawasi. Mendekati batas, belum berbahaya." },
-      { status:"crit", label:"BREACH", text:"Perlu tindakan. Angkanya sudah lewat batas." },
+      { status:"ok", label:"Sesuai target", text:"Aman. Angkanya sudah sesuai target." },
+      { status:"warn", label:"Waspada", text:"Perlu diawasi. Mendekati batas, belum berbahaya." },
+      { status:"crit", label:"Di luar target", text:"Perlu tindakan. Angkanya sudah lewat batas." },
       { status:"na", label:"TARGET BELUM DITETAPKAN", text:"Belum bisa dinilai baik atau buruk, karena rumah sakit belum menyepakati targetnya. Daripada memberi warna yang menyesatkan, angkanya ditampilkan abu-abu." }
     ],
     tipsTitle: "Tips memakai",

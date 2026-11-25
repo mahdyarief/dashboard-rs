@@ -58,18 +58,18 @@ const icon = (name, extra = 'data-icon="inline-start"') => svg(ICON[name], extra
 
 /* ================= status → varian badge Basecoat ================= */
 const STATUS = {
-  ok:      { label:"ON-TARGET", variant:"outline", icon:"check", cls:"border-chart-2/50 bg-chart-2/10 *:text-chart-2" },
-  warn:    { label:"WATCH", variant:"outline", icon:"alert", cls:"border-chart-3/70 bg-chart-3/20 *:text-chart-3" },
-  crit:    { label:"BREACH", variant:"destructive", icon:"x" },
-  na:      { label:"TARGET BELUM DITETAPKAN", variant:"outline", icon:"minus" },
-  neutral: { label:"INFO", variant:"outline", icon:"info" }
+  ok:      { label:"Sesuai target", variant:"outline", icon:"check", cls:"border-chart-2/50 bg-chart-2/10 *:text-chart-2" },
+  warn:    { label:"Waspada", variant:"outline", icon:"alert", cls:"border-chart-3/70 bg-chart-3/20 *:text-chart-3" },
+  crit:    { label:"Di luar target", variant:"destructive", icon:"x" },
+  na:      { label:"Target belum ditetapkan", variant:"outline", icon:"minus" },
+  neutral: { label:"Info", variant:"outline", icon:"info" }
 };
 function statusLabel(s) { return (STATUS[s] || STATUS.neutral).label; }
 function badge(status, label) {
   const s = STATUS[status] || STATUS.neutral;
   return `<span class="badge shrink-0 ${s.cls || ""}" data-variant="${s.variant}">${icon(s.icon)}${esc(label || s.label)}</span>`;
 }
-const riskLabel = r => r === "crit" ? "KRITIS" : r === "warn" ? "PANTAU" : "STABIL";
+const riskLabel = r => r === "crit" ? "Kritis" : r === "warn" ? "Pantau" : "Stabil";
 
 /* ================= state & navigasi ================= */
 const state = { tab: "ringkasan", role: "direksi", unit: "all", caseId: null, period: "month" };
@@ -191,7 +191,9 @@ const isDark = () => document.documentElement.classList.contains("dark");
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
 const C = {
   main: () => col("--chart-1"), soft: () => col("--chart-1"), ok: () => col("--chart-2"), warn: () => col("--chart-3"), mid: () => col("--chart-4"), deep: () => col("--chart-5"),
-  crit: () => col("--destructive"), muted: () => col("--muted-foreground"), border: () => col("--border"), fg: () => col("--foreground")
+  crit: () => col("--destructive"), muted: () => col("--muted-foreground"), border: () => col("--border"), fg: () => col("--foreground"),
+  /* teks di atas label merah: putih di mode terang, latar gelap di mode gelap (merahnya lebih terang) */
+  onCrit: () => isDark() ? col("--background") : "#fff"
 };
 
 function merge(a, b) {
@@ -270,7 +272,7 @@ function trendChart({ series, labels, band, target, unit = "", label, height = 2
             style: { background: "transparent", color: C.muted(), fontSize: "11px" }, borderColor: "transparent" } }] : []),
         ...(target != null ? [{ y: target, borderColor: C.crit(), strokeDashArray: 5,
           label: { text: `Target ${fmt(target, Number.isInteger(target) ? 0 : 1)}${unit}`, position: "left", textAnchor: "start", offsetX: 6,
-            style: { background: C.crit(), color: "#fff", fontSize: "11px" }, borderColor: C.crit() } }] : [])
+            style: { background: C.crit(), color: C.onCrit(), fontSize: "11px" }, borderColor: C.crit() } }] : [])
       ]
     }
   }), height);
@@ -298,7 +300,7 @@ function columnChart({ labels, values, target, unit = "", label, height = 260 })
     yaxis: { tickAmount: 4, labels: { formatter: v => fmt(v) } },
     tooltip: { y: { formatter: v => fmt(v) + unit } },
     annotations: target != null ? { yaxis: [{ y: target, borderColor: C.crit(), strokeDashArray: 5,
-      label: { text: `Ambang ${target}${unit}`, position: "left", textAnchor: "start", offsetX: 6, style: { background: C.crit(), color: "#fff", fontSize: "11px" }, borderColor: C.crit() } }] } : {}
+      label: { text: `Ambang ${target}${unit}`, position: "left", textAnchor: "start", offsetX: 6, style: { background: C.crit(), color: C.onCrit(), fontSize: "11px" }, borderColor: C.crit() } }] } : {}
   }), height);
 }
 
@@ -354,7 +356,7 @@ function card({ title, sub = "", body, foot = "", action = "", cls = "" }) {
 }
 function sectionHead(title, meta, right = "") {
   return `<div class="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
-    <div class="min-w-0"><h2 class="text-xl font-semibold tracking-tight">${title}</h2><p class="text-sm text-muted-foreground">${meta}${isMonth() ? "" : " · angka periode ini disimulasikan dari data bulanan (mock)"}</p></div>
+    <div class="min-w-0"><h2 class="text-xl font-semibold tracking-tight text-balance">${title}</h2><p class="text-sm text-muted-foreground">${meta}${isMonth() ? "" : " · angka periode ini disimulasikan dari data bulanan (mock)"}</p></div>
     <span class="flex flex-wrap gap-1.5"><span class="badge" data-variant="secondary">${esc(P().label)} · ${esc(P().range)}</span>${right ? `<span class="badge" data-variant="outline">${esc(right)}</span>` : ""}</span>
   </div>`;
 }
@@ -379,12 +381,12 @@ function metricTile(k) {
   const delta = scoped
     ? `<span>Unit · periode berjalan</span>`
     : `<span class="${deltaGood(d) ? "text-foreground" : "text-destructive"} font-medium">${deltaText(d.delta)}</span><span>${P().vs}</span>`;
-  return `<button type="button" class="card min-w-0 gap-3 py-4 text-left transition hover:-translate-y-0.5 hover:bg-muted/50 hover:shadow-md motion-reduce:transition-none motion-reduce:hover:translate-y-0 focus-visible:outline-2 focus-visible:outline-ring" data-k="${d.k}" aria-label="${esc(d.name)}: ${fmtAuto(d.value)} ${esc(d.unit)}. Klik untuk definisi.">
+  return `<button type="button" class="card min-w-0 gap-3 text-left transition hover:-translate-y-0.5 hover:bg-muted/50 hover:shadow-md motion-reduce:transition-none motion-reduce:hover:translate-y-0 focus-visible:outline-2 focus-visible:outline-ring" data-k="${d.k}" aria-label="${esc(d.name)}: ${fmtAuto(d.value)} ${esc(d.unit)}. Klik untuk definisi.">
     <header class="flex items-start justify-between gap-2 px-4">
       <span class="text-sm font-medium leading-snug">${d.k} · ${esc(d.name)}</span>${badge(d.status)}
     </header>
     <section class="flex flex-col gap-1 px-4">
-      <strong class="text-3xl font-semibold tracking-tight tabular-nums">${fmtAuto(d.value)}<span class="ml-1 text-sm font-normal text-muted-foreground">${esc(d.unit)}</span></strong>
+      <strong class="text-4xl font-semibold tracking-tight tabular-nums">${fmtAuto(d.value)}<span class="ml-1 text-sm font-normal text-muted-foreground">${esc(d.unit)}</span></strong>
       <span class="text-sm text-muted-foreground">Target ${esc(d.target)} · ${scoped ? esc(unit.name) : "RS-level"}</span>
       ${scoped ? "" : sparkline(pseries(d.k, d.series, d.labels).data, d.band)}
     </section>
@@ -398,10 +400,10 @@ function metricTile(k) {
 function simpleMetric({ label, value, unit = "", target, status, note, k }) {
   const tag = k ? "button" : "article";
   const attrs = k ? ` type="button" data-k="${esc(k)}" aria-label="${esc(label)}. Klik untuk definisi."` : "";
-  return `<${tag} class="card min-w-0 gap-2 py-4 text-left ${k ? "transition hover:-translate-y-0.5 hover:bg-muted/50 hover:shadow-md motion-reduce:transition-none motion-reduce:hover:translate-y-0" : ""}"${attrs}>
+  return `<${tag} class="card min-w-0 gap-2 text-left ${k ? "transition hover:-translate-y-0.5 hover:bg-muted/50 hover:shadow-md motion-reduce:transition-none motion-reduce:hover:translate-y-0" : ""}"${attrs}>
     <header class="flex items-start justify-between gap-2 px-4"><span class="text-sm font-medium leading-snug">${esc(label)}</span>${badge(status)}</header>
     <section class="flex flex-col gap-1 px-4">
-      <strong class="text-2xl font-semibold tracking-tight tabular-nums">${value}<span class="ml-1 text-sm font-normal text-muted-foreground">${esc(unit)}</span></strong>
+      <strong class="text-3xl font-semibold tracking-tight tabular-nums">${value}<span class="ml-1 text-sm font-normal text-muted-foreground">${esc(unit)}</span></strong>
       <span class="text-sm text-muted-foreground">${status === "na" ? "Target belum ditetapkan" : "Target " + esc(target)}</span>
       <span class="text-sm text-muted-foreground">${esc(note)}</span>
     </section>
@@ -409,12 +411,12 @@ function simpleMetric({ label, value, unit = "", target, status, note, k }) {
 }
 
 function alertItems(limit = 6) {
-  return `<div class="flex flex-col gap-3">${alerts.slice(0, limit).map(a => `
-    <div class="item" data-variant="outline">
+  return `<div class="flex flex-col divide-y divide-border">${alerts.slice(0, limit).map(a => `
+    <div class="item rounded-none px-0">
       <section class="min-w-0">
         <h3 class="flex flex-wrap items-center gap-2">${esc(a.title)}</h3>
         <p class="line-clamp-none">${esc(a.detail)}</p>
-        <p class="line-clamp-none flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">${badge(a.sev, a.sev === "crit" ? "KRITIS" : "PANTAU")}<span class="font-medium text-foreground">${esc(a.domain)}</span><span>${esc(a.owner)}</span><span>${esc(a.age)} lalu</span></p>
+        <p class="line-clamp-none flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">${badge(a.sev, a.sev === "crit" ? "Kritis" : "Pantau")}<span class="font-medium text-foreground">${esc(a.domain)}</span><span>${esc(a.owner)}</span><span>${esc(a.age)} lalu</span></p>
         <div class="pt-2"><button type="button" class="btn" data-variant="outline" data-size="sm" data-go="${a.tab}">${esc(a.action)}</button></div>
       </section>
     </div>`).join("")}</div>`;
@@ -422,10 +424,10 @@ function alertItems(limit = 6) {
 
 function capacityCard() {
   const used = Math.round((capacity.occupied / capacity.totalBeds) * 100);
-  const fig = (v, t) => `<div class="flex flex-col"><strong class="text-2xl font-semibold tabular-nums">${v}</strong><span class="text-sm text-muted-foreground">${t}</span></div>`;
+  const fig = (v, t) => `<div class="flex min-w-0 flex-col"><strong class="text-3xl font-semibold tracking-tight tabular-nums">${v}</strong><span class="text-sm text-muted-foreground">${t}</span></div>`;
   return card({ title: "Kapasitas hari ini", sub: "per 07:42",
-    body: `<div class="flex flex-col gap-4">
-      <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">${fig(capacity.occupied, `/ ${capacity.totalBeds} bed terisi`)}${fig(capacity.available, "bed tersedia")}${fig(`${capacity.icu.occupied}/${capacity.icu.total}`, "ICU terpakai")}${fig(capacity.igdWaiting, "IGD menunggu")}</div>
+    body: `<div class="@container flex flex-col gap-4">
+      <div class="grid grid-cols-2 gap-4 @xl:grid-cols-4">${fig(capacity.occupied, `/ ${capacity.totalBeds} bed terisi`)}${fig(capacity.available, "bed tersedia")}${fig(`${capacity.icu.occupied}/${capacity.icu.total}`, "ICU terpakai")}${fig(capacity.igdWaiting, "IGD menunggu")}</div>
       <div class="progress h-2" role="progressbar" aria-valuenow="${used}" aria-valuemin="0" aria-valuemax="100" aria-label="${used}% bed terisi"><span style="width:${used}%"></span></div>
     </div>`,
     foot: `${capacity.dischargesDone} dari ${capacity.dischargesPlanned} rencana pulang selesai` });
@@ -439,9 +441,9 @@ const domainRisk = [
   { name:"Pelayanan pasien", status:"ok", note:"Kepuasan 86,4 · komplain 12 · DAMA 2,1%", tab:"pengalaman" }
 ];
 function itemList(rows) {
-  return `<div class="flex flex-col gap-2">${rows.map(r => `
-    <${r.go ? `button type="button" data-go="${r.go}"` : "div"} class="item text-left ${r.go ? "transition-colors hover:bg-muted/50" : ""}" data-variant="outline" data-size="sm">
-      <section class="min-w-0"><h3>${esc(r.title)}</h3>${r.desc ? `<p class="line-clamp-none">${esc(r.desc)}</p>` : ""}</section>
+  return `<div class="flex flex-col divide-y divide-border">${rows.map(r => `
+    <${r.go ? `button type="button" data-go="${r.go}"` : "div"} class="item rounded-none px-1 text-left ${r.go ? "transition-colors hover:bg-muted/50" : ""}" data-size="sm">
+      <section class="min-w-0 basis-48"><h3>${esc(r.title)}</h3>${r.desc ? `<p class="line-clamp-none">${esc(r.desc)}</p>` : ""}</section>
       <aside>${r.badge}</aside>
     </${r.go ? "button" : "div"}>`).join("")}</div>`;
 }
@@ -532,7 +534,7 @@ function boxplot() {
     yaxis: { tickAmount: 4, labels: { formatter: v => fmt(v) } },
     legend: { show: false },
     annotations: { yaxis: [{ y: d.target, borderColor: C.crit(), strokeDashArray: 5,
-      label: { text: `Target ${d.target}‰`, position: "left", textAnchor: "start", offsetX: 6, style: { background: C.crit(), color: "#fff", fontSize: "11px" }, borderColor: C.crit() } }] }
+      label: { text: `Target ${d.target}‰`, position: "left", textAnchor: "start", offsetX: 6, style: { background: C.crit(), color: C.onCrit(), fontSize: "11px" }, borderColor: C.crit() } }] }
   }), 280);
 }
 
@@ -701,13 +703,13 @@ function renderEquipment() {
         "Unit ini tidak punya alat kritis terdaftar."),
       foot: sourceFoot(e.source, "Peringatan = menunggu kalibrasi, maintenance, pembersihan, atau aksesori; tidak siap = rusak, dikarantina, atau out of service.") })}</div>
     <div class="min-w-0 2xl:col-span-2">${card({ title: "Utilitas kritis", sub: "status terkini",
-      body: itemList(e.utilities.map(u => ({ title: u.name, desc: `${u.value} · data ${u.age} lalu`, badge: badge(u.st, u.st === "ok" ? "NORMAL" : u.st === "warn" ? "PERHATIAN" : "GANGGUAN") }))),
+      body: itemList(e.utilities.map(u => ({ title: u.name, desc: `${u.value} · data ${u.age} lalu`, badge: badge(u.st, u.st === "ok" ? "Normal" : u.st === "warn" ? "Perhatian" : "Gangguan") }))),
       foot: e.coldChain.note })}</div>`)}
   ${grid("2xl:grid-cols-2", `
     ${card({ title: "Kalibrasi jatuh tempo", sub: "≤30 hari dan terlambat",
       body: `<div class="flex flex-col gap-4">
         <div class="progress h-2" role="progressbar" aria-valuenow="${Math.round(e.calibPct)}" aria-valuemin="0" aria-valuemax="100" aria-label="${fmt(e.calibPct, 1)}% alat dalam masa kalibrasi"><span style="width:${e.calibPct}%"></span></div>
-        ${e.due.length ? itemList(e.due.map(d => ({ title: d.name, desc: `${d.unit} · ${d.due}`, badge: badge(d.st, d.st === "crit" ? "TERLAMBAT" : d.st === "warn" ? "SEGERA" : "TERJADWAL") }))) : `<p class="text-sm text-muted-foreground">Tidak ada kalibrasi jatuh tempo untuk unit ini.</p>`}
+        ${e.due.length ? itemList(e.due.map(d => ({ title: d.name, desc: `${d.unit} · ${d.due}`, badge: badge(d.st, d.st === "crit" ? "Terlambat" : d.st === "warn" ? "Segera" : "Terjadwal") }))) : `<p class="text-sm text-muted-foreground">Tidak ada kalibrasi jatuh tempo untuk unit ini.</p>`}
       </div>`,
       foot: "Alat yang lewat jatuh tempo kalibrasi dikarantina sampai lulus uji ulang." })}
     ${card({ title: "Tren kesiapan alat kritis", sub: `% READY · ${gran("7 bulan terakhir")} · target ≥${e.readyTarget}%`,
@@ -723,9 +725,9 @@ function renderOperasional() {  return `
     <div class="flex min-w-0 flex-col gap-6 2xl:col-span-2">
       ${capacityCard()}
       ${card({ title: "Unit perlu perhatian", sub: "hari ini", body: itemList([
-        { title: "ICU", desc: "92% · 11/12 bed", badge: badge("crit", "KRITIS") },
-        { title: "HCU", desc: "89% · 16/18 bed", badge: badge("warn", "PANTAU") },
-        { title: "Rawat Inap A", desc: "88% · 35/40 bed", badge: badge("warn", "PANTAU") },
+        { title: "ICU", desc: "92% · 11/12 bed", badge: badge("crit", "Kritis") },
+        { title: "HCU", desc: "89% · 16/18 bed", badge: badge("warn", "Pantau") },
+        { title: "Rawat Inap A", desc: "88% · 35/40 bed", badge: badge("warn", "Pantau") },
         { title: "VIP / Paviliun", desc: "58% · 13/22 bed", badge: badge("ok", "LONGGAR") }]) })}
     </div>`)}
   ${card({ title: "Indikator rawat inap per unit", sub: "klik unit untuk memfilter", body: unitTable(),
@@ -751,7 +753,7 @@ function waterfall(components, total, target) {
     xaxis: { min: 0, max: Math.max(total, target) * 1.05, labels: { formatter: v => fmt(v) } },
     tooltip: { custom: ({ dataPointIndex }) => { const p = data[dataPointIndex]; return `<div class="px-3 py-2 text-xs"><b>${esc(p.x)}</b>: ${fmt(p.y[1] - p.y[0], 1)} M</div>`; } },
     annotations: { xaxis: [{ x: target, borderColor: C.crit(), strokeDashArray: 5,
-      label: { text: `Target ${fmt(target, 1)} M`, orientation: "horizontal", style: { background: C.crit(), color: "#fff", fontSize: "11px" }, borderColor: C.crit() } }] }
+      label: { text: `Target ${fmt(target, 1)} M`, orientation: "horizontal", style: { background: C.crit(), color: C.onCrit(), fontSize: "11px" }, borderColor: C.crit() } }] }
   }), Math.max(220, data.length * 44 + 40));
 }
 
@@ -786,8 +788,8 @@ function renderKeuangan() {
     ${card({ title: "Penyebab denial klaim", sub: `${denialTotal} klaim`, body: hBars({ rows: f.denialPareto.map(d => ({ label: d.label, v: d.n })), unit: "×", label: "Penyebab denial klaim", highlight: [0] }) })}
     ${card({ title: "Tindak lanjut arus kas", sub: "3 langkah", body: itemList([
       { title: "Rekonsiliasi 34 klaim kode INA-CBG", desc: "target selesai 5 Des", badge: badge("crit", "PRIORITAS") },
-      { title: "Lengkapi 22 dokumen klaim tertahan", desc: "verifikasi berkas", badge: badge("warn", "PANTAU") },
-      { title: "Collection rate 94,2%", desc: "di atas 90%, di bawah target 95%", badge: badge("ok", "STABIL") }]),
+      { title: "Lengkapi 22 dokumen klaim tertahan", desc: "verifikasi berkas", badge: badge("warn", "Pantau") },
+      { title: "Collection rate 94,2%", desc: "di atas 90%, di bawah target 95%", badge: badge("ok", "Stabil") }]),
       foot: "Denial rate 8,2% setara 84 dari 1.024 klaim bulan ini." })}`)}
   ${precheckCards()}`;
 }
@@ -825,11 +827,11 @@ function renderKepatuhan() {
     <div class="flex min-w-0 flex-col gap-6 2xl:col-span-2">
       ${card({ title: "Indikator SIRS", sub: "RL 1.2 & 3.1", body: table([{ t:"Indikator" }, { t:"Nilai", num:true }, { t:"Target", num:true }, { t:"Status" }],
         sirs.map(s => ({ cells: [`<span class="font-medium">${esc(s.k)}</span>`, esc(String(s.value)), esc(s.target), badge(s.status)] }))) })}
-      ${card({ title: "Tenggat pelaporan", sub: "terdekat", body: `<div class="flex flex-col gap-2">${compliance.deadlines.map(d => `
-        <div class="item" data-variant="outline" data-size="sm">
+      ${card({ title: "Tenggat pelaporan", sub: "terdekat", body: `<div class="flex flex-col divide-y divide-border">${compliance.deadlines.map(d => `
+        <div class="item rounded-none px-0" data-size="sm">
           <figure class="flex size-10 flex-col items-center justify-center rounded-md bg-muted text-center leading-none"><b class="text-sm">${esc(d.date.split(" ")[0])}</b><span class="text-xs text-muted-foreground">${esc(d.date.split(" ").slice(1).join(" "))}</span></figure>
           <section class="min-w-0"><h3>${esc(d.label)}</h3><p>${d.days} hari lagi</p></section>
-          <aside>${d.status === "due" ? badge("crit", "JATUH TEMPO") : badge("neutral", "TERJADWAL")}</aside>
+          <aside>${d.status === "due" ? badge("crit", "Jatuh tempo") : badge("neutral", "Terjadwal")}</aside>
         </div>`).join("")}</div>` })}
     </div>`)}`;
 }
@@ -838,7 +840,7 @@ function strategyMap() {
   const chain = [0, 1, 2, 3].map(i => bsc[i]); // keuangan → pelanggan → proses → pembelajaran (atas → bawah)
   return `<ol class="flex flex-col items-stretch gap-1" aria-label="Peta strategi: sebab di bawah, akibat di atas">${chain.map((b, i) => `
     ${i ? `<li class="flex justify-center text-muted-foreground" aria-hidden="true">${svg(ICON.up, 'class="size-5"')}</li>` : ""}
-    <li class="item" data-variant="outline">
+    <li class="item" data-variant="muted">
       <section class="min-w-0"><h3>${esc(b.p)}</h3><p class="line-clamp-none">${esc(b.note)}</p></section>
       <aside class="flex items-center gap-2"><strong class="text-xl font-semibold tabular-nums">${b.score}</strong>${badge(b.status)}</aside>
     </li>`).join("")}</ol>`;
@@ -870,7 +872,7 @@ function renderStrategi() {
   ${card({ title: "Cara membaca BSC", sub: "catatan metode",
     body: `<div class="flex flex-col gap-3 text-sm leading-relaxed">
       <p>Skor tiap perspektif adalah rata-rata tertimbang indikator di dalamnya, bukan hasil uji statistik. Bobot: keuangan 30%, pelanggan 25%, proses internal 25%, pembelajaran 20%.</p>
-      <p>Gunakan skor untuk membandingkan arah antarperspektif, bukan untuk memberi peringkat unit. Indikator dengan status BREACH tetap ditindaklanjuti terlepas dari skornya.</p>
+      <p>Gunakan skor untuk membandingkan arah antarperspektif, bukan untuk memberi peringkat unit. Indikator dengan status di luar target tetap ditindaklanjuti terlepas dari skornya.</p>
       <p>BSC tidak menambah indikator baru; ia menyusun ulang 18–22 indikator inti ke dalam rantai sebab-akibat.</p></div>`,
     foot: "Dasar: Kaplan &amp; Norton; tinjauan 87 BSC kesehatan (Bohm dkk. 2021, BMJ Open Quality) — 97% merujuk Kaplan–Norton, tetapi hanya 21% memakai empat perspektif aslinya tanpa diubah." })}`;
 }
@@ -964,8 +966,8 @@ function renderDocs() {
   ${card({ title: esc(d.mock.title), body: `<div class="flex flex-col gap-4"><p class="text-sm leading-relaxed">${esc(d.mock.text)}</p>
     <div class="grid grid-cols-1 gap-4 md:grid-cols-3">${d.mock.readiness.map(r => `<div class="flex flex-col gap-1.5">${badge(r.status, r.label)}<p class="text-sm text-muted-foreground">${esc(r.text)}</p></div>`).join("")}</div></div>` })}
   ${card({ title: "Daftar pustaka", sub: "nomor di setiap penjelasan merujuk ke daftar ini", body: `
-    <ol class="flex flex-col gap-3">${d.references.map((r, i) => `
-      <li id="ref-${r.id}" class="item scroll-mt-40 transition-shadow" data-variant="outline">
+    <ol class="flex flex-col divide-y divide-border">${d.references.map((r, i) => `
+      <li id="ref-${r.id}" class="item scroll-mt-40 px-1 transition-shadow">
         <figure class="flex size-8 items-center justify-center rounded-full bg-muted text-sm font-semibold tabular-nums">${i + 1}</figure>
         <section class="min-w-0">
           <h3 class="whitespace-normal font-normal leading-relaxed">${esc(r.cite)}</h3>
@@ -1150,9 +1152,9 @@ function exportCsv() {
     rows.push(["Unit " + u.name, "TOI", n(u.toi), "hari", "1–3", statusLabel(u.status)]);
     rows.push(["Unit " + u.name, "BTO", n(u.bto), "kali/tahun", "40–50", statusLabel(u.status)]);
   });
-  rows.push(["Keuangan", "Pendapatan", n(finance.revenue), "miliar", n(finance.revenueTarget), "WATCH"]);
-  rows.push(["Keuangan", "AR days", n(finance.arDays), "hari", "≤" + finance.arTarget, "WATCH"]);
-  rows.push(["Keuangan", "Denial klaim", n(finance.denialRate), "%", "≤" + n(finance.denialTarget), "WATCH"]);
+  rows.push(["Keuangan", "Pendapatan", n(finance.revenue), "miliar", n(finance.revenueTarget), "Waspada"]);
+  rows.push(["Keuangan", "AR days", n(finance.arDays), "hari", "≤" + finance.arTarget, "Waspada"]);
+  rows.push(["Keuangan", "Denial klaim", n(finance.denialRate), "%", "≤" + n(finance.denialTarget), "Waspada"]);
   { const c = precheckFor(); rows.push(["Keuangan", "Pra-verifikasi klaim lolos (ValidAI, mock)", n(fmt(c.rate, 1)), "%", "belum ditetapkan", statusLabel("na")]);
     c.categories.forEach(x => rows.push(["Pra-verifikasi klaim", "Temuan: " + x.label, x.n, "temuan", "", ""])); }
   { const e = equipmentFor();
@@ -1160,7 +1162,7 @@ function exportCsv() {
     rows.push(["Alat & utilitas", "Kepatuhan kalibrasi", n(fmt(e.calibPct, 1)), "%", "belum ditetapkan", statusLabel("na")]);
     rows.push(["Alat & utilitas", "Excursion cold chain", e.excursions, "kejadian", "0", statusLabel(e.excursions ? "warn" : "ok")]);
     e.utilities.forEach(u => rows.push(["Utilitas", u.name, u.value, "", "normal", statusLabel(u.st)])); }
-  rows.push(["SDM", "Kepuasan staf", n(hr.satisfaction), "/100", "≥" + hr.satisfactionTarget, "WATCH"]);
+  rows.push(["SDM", "Kepuasan staf", n(hr.satisfaction), "/100", "≥" + hr.satisfactionTarget, "Waspada"]);
   rows.push(["Identitas", "Periode", `${P().label} (${P().range})`, "", "", ""]);
   rows.push(["Identitas", "Diekspor", new Date().toLocaleString("id-ID"), "", "", ""]);
 

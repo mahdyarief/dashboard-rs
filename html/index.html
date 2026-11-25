@@ -13,13 +13,19 @@
   } catch (e) {}
 </script>
 <!-- Basecoat UI (komponen) + Tailwind v4 (utilitas tata letak) + ApexCharts (grafik, warna dari token --chart-*) -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/basecoat-css@1.3.0/dist/basecoat.cdn.min.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" />
+<!-- Style pack Nova: kartu rounded-xl, ritme vertikal lebih rapat -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/basecoat-css@1.3.0/dist/basecoat-nova.cdn.min.css" />
 <style>
   /* Palet klinis rumah sakit — hanya nilai token tema Basecoat (cara kustomisasi resmi).
      Biru medis = warna utama (tenang, tepercaya) · latar putih kebiruan yang bersih
      --chart-1 biru medis · --chart-2 aman (hijau) · --chart-3 waspada (kuning)
      --chart-4 teal klinis · --chart-5 biru tua · --destructive pelanggaran (merah) */
   :root {
+    /* IBM Plex Sans: humanis-institusional, angka tabular, cocok untuk istilah klinis */
+    --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
     --background: oklch(0.985 0.004 240);
     --card: oklch(1 0 0);
     --popover: oklch(1 0 0);
@@ -68,6 +74,8 @@
     --chart-3: oklch(0.83 0.14 85);
     --chart-4: oklch(0.76 0.1 195);
     --chart-5: oklch(0.86 0.05 240);
+    /* merah pelanggaran sedikit lebih terang agar label badge lolos 4.5:1 di atas tint gelapnya */
+    --destructive: oklch(0.75 0.17 22);
   }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.1.11/dist/index.global.js"></script>
@@ -105,7 +113,7 @@
 <script src="https://cdn.jsdelivr.net/npm/basecoat-css@1.3.0/dist/js/all.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.54.1/dist/apexcharts.min.js"></script>
 </head>
-<body class="bg-background text-foreground antialiased">
+<body class="bg-background text-foreground antialiased text-pretty caret-primary selection:bg-primary/20">
 
 <aside class="sidebar" id="sidebar" data-side="left" aria-hidden="false">
   <nav aria-label="Domain dashboard">
@@ -145,7 +153,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg>
       </button>
       <div class="min-w-0 flex-1">
-        <h1 class="truncate text-base font-semibold leading-tight" id="pageTitle">Ringkasan</h1>
+        <h1 class="truncate text-xl font-semibold leading-tight tracking-tight md:text-2xl" id="pageTitle">Ringkasan</h1>
         <p class="truncate text-xs text-muted-foreground"><span id="periodLabel">November 2026</span> · <span id="scopeChip">seluruh RS</span> · sinkron <span id="syncTime">24 Nov 07:42</span></p>
       </div>
       <button type="button" class="btn xl:hidden" data-variant="outline" data-size="sm" id="chatOpen" aria-controls="chatSheet" aria-label="Buka asisten data">
@@ -178,12 +186,12 @@
   <div class="grid flex-1 grid-cols-1 items-start gap-6 p-4 md:p-6 xl:grid-cols-3">
     <section id="view" class="flex min-w-0 flex-col gap-6 xl:col-span-2" tabindex="-1" aria-live="polite"></section>
     <aside id="chatHome" class="sticky top-32 hidden min-w-0 xl:block" aria-label="Asisten data">
-      <div id="chat" class="card gap-4 py-4">
+      <div id="chat" class="card gap-4">
         <header class="px-4">
           <div class="flex items-center gap-3">
             <span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground" aria-hidden="true">NA</span>
             <div class="min-w-0">
-              <h2 class="text-sm font-semibold">Asisten Data</h2>
+              <h2 class="text-base font-semibold">Asisten Data</h2>
               <p class="text-xs text-muted-foreground">Nusantara Agent · metric layer</p>
             </div>
           </div>
@@ -219,7 +227,7 @@
 <dialog id="chatSheet" class="sheet" data-side="right" aria-labelledby="chatSheetTitle">
   <div class="scrollbar scrollbar-thin flex w-full flex-col gap-4 overflow-y-auto p-4 sm:max-w-md">
     <header class="flex items-center justify-between gap-2">
-      <h2 id="chatSheetTitle" class="text-base font-semibold">Asisten Data</h2>
+      <h2 id="chatSheetTitle" class="text-lg font-semibold">Asisten Data</h2>
       <button type="button" class="btn" data-variant="ghost" data-size="icon-sm" aria-label="Tutup" data-close>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
       </button>
@@ -245,8 +253,8 @@
   </div>
 </dialog>
 
-<script src="./mock-data.js?v=20261125t"></script>
-<script src="./docs-content.js?v=20261125t"></script>
-<script src="./dashboard.js?v=20261125t"></script>
+<script src="./mock-data.js?v=20261125u"></script>
+<script src="./docs-content.js?v=20261125u"></script>
+<script src="./dashboard.js?v=20261125u"></script>
 </body>
 </html>
