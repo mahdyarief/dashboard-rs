@@ -156,7 +156,16 @@
         <span class="hidden sm:inline">Ekspor CSV</span>
       </button>
     </div>
-    <div class="grid w-full grid-cols-2 gap-3 md:flex md:w-auto md:justify-end">
+    <div class="grid w-full grid-cols-2 gap-3 md:flex md:w-auto md:items-end md:justify-end">
+      <div class="col-span-2 flex min-w-0 flex-col gap-2 md:col-span-1">
+        <span class="label text-sm font-medium" id="periodGroupLabel">Periode</span>
+        <div class="button-group flex w-full" id="periodGroup" role="group" aria-labelledby="periodGroupLabel">
+          <button type="button" class="btn flex-1" data-variant="outline" data-period="today" aria-pressed="false">Hari ini</button>
+          <button type="button" class="btn flex-1" data-variant="outline" data-period="week" aria-pressed="false">Minggu ini</button>
+          <button type="button" class="btn flex-1" data-variant="primary" data-period="month" aria-pressed="true">Bulan ini</button>
+          <button type="button" class="btn flex-1" data-variant="outline" data-period="year" aria-pressed="false">Tahun ini</button>
+        </div>
+      </div>
       <div role="group" class="field md:w-44" data-orientation="vertical">
         <label for="unitFilter" class="label">Unit</label>
         <select id="unitFilter" class="select w-full"></select>
@@ -242,8 +251,8 @@
   </div>
 </dialog>
 
-<script src="./mock-data.js?v=20261125n"></script>
-<script src="./docs-content.js?v=20261125n"></script>
-<script src="./dashboard.js?v=20261125n"></script>
+<script src="./mock-data.js?v=20261125p"></script>
+<script src="./docs-content.js?v=20261125p"></script>
+<script src="./dashboard.js?v=20261125p"></script>
 </body>
 </html>

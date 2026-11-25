@@ -72,7 +72,71 @@ function badge(status, label) {
 const riskLabel = r => r === "crit" ? "KRITIS" : r === "warn" ? "PANTAU" : "STABIL";
 
 /* ================= state & navigasi ================= */
-const state = { tab: "ringkasan", role: "direksi", unit: "all", caseId: null };
+const state = { tab: "ringkasan", role: "direksi", unit: "all", caseId: null, period: "month" };
+
+/* ================= filter periode =================
+   Data mock aslinya bulanan (November 2026). Periode lain disimulasikan secara
+   deterministik: rasio bergeser sedikit, hitungan diskalakan menurut panjang
+   periode, dan tren memakai sumbu waktu yang sesuai. Di sistem nyata, metric
+   layer yang mengembalikan angka per periode. */
+const PERIODS = {
+  today: { label: "Hari ini",   range: "Selasa, 24 Nov 2026", vs: "vs kemarin",     factor: 1 / 30, perPoint: 1 / 360, seed: 11, gran: "per 2 jam, hari ini",
+           labels: ["00","02","04","06","08","10","12","14","16","18","20","22"] },
+  week:  { label: "Minggu ini", range: "18–24 Nov 2026",      vs: "vs minggu lalu", factor: 7 / 30, perPoint: 1 / 30, seed: 23, gran: "harian, 7 hari terakhir",
+           labels: ["Rab 18","Kam 19","Jum 20","Sab 21","Min 22","Sen 23","Sel 24"] },
+  month: { label: "Bulan ini",  range: "November 2026",       vs: "vs Okt",         factor: 1,      perPoint: 1, seed: 0,  gran: "" },
+  year:  { label: "Tahun ini",  range: "Jan–Nov 2026",        vs: "vs 2025",        factor: 11,     perPoint: 1, seed: 37, gran: "bulanan, Jan–Nov 2026",
+           labels: ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov"] }
+};
+const P = () => PERIODS[state.period];
+const isMonth = () => state.period === "month";
+function rnd(key) { // −1..1, stabil per (periode, kunci)
+  let h = 2166136261 ^ P().seed;
+  for (const c of String(key)) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
+  return ((h >>> 0) % 2001) / 1000 - 1;
+}
+const roundLike = (v, ref) => { const d = Number.isInteger(ref) ? 0 : Math.abs(ref) < 1 ? 2 : 1; return Math.round(v * 10 ** d) / 10 ** d; };
+/* rasio/indeks: geser ±spread */
+function pv(key, v, spread = 0.04) { return isMonth() ? v : roundLike(v * (1 + rnd(key) * spread), v); }
+/* hitungan/arus (rupiah, kejadian): skala menurut panjang periode */
+function pc(v, dec = 0) { if (isMonth()) return v; const r = v * P().factor * (1 + rnd("c" + v) * 0.08); return dec ? Math.round(r * 10 ** dec) / 10 ** dec : Math.max(0, Math.round(r)); }
+/* subjudul granularitas tren */
+const gran = def => (isMonth() ? def : P().gran);
+/* sampel ulang deret ke sumbu waktu periode; titik terakhir = nilai periode */
+function pseries(key, base, baseLabels) {
+  if (isMonth()) return { labels: baseLabels, data: base };
+  const L = P().labels, n = L.length, m = base.length;
+  const span = (Math.max(...base) - Math.min(...base)) || Math.abs(base[m - 1]) * 0.05 || 1;
+  const last = pv(key, base[m - 1]);
+  const data = L.map((_, i) => {
+    const pos = (i / (n - 1)) * (m - 1), lo = Math.floor(pos), f = pos - lo;
+    const interp = base[lo] + (base[Math.min(m - 1, lo + 1)] - base[lo]) * f;
+    const v = state.period === "year" ? interp : base[m - 1] + (interp - base[m - 1]) * 0.35;
+    return roundLike(v + rnd(key + i) * span * 0.18, base[m - 1]);
+  });
+  data[n - 1] = last;
+  return { labels: L, data };
+}
+function statusFromTarget(target, v) {
+  const t = targetNum(target), s = String(target).trim();
+  if (/^[<≤]/.test(s)) return v <= t ? "ok" : v <= t * 1.15 ? "warn" : "crit";
+  return v >= t ? "ok" : v >= t * 0.94 ? "warn" : "crit";
+}
+function statusFromBand(v, band) {
+  if (v >= band[0] && v <= band[1]) return "ok";
+  const w = (band[1] - band[0]) * 0.12 || Math.abs(band[1]) * 0.06;
+  return v >= band[0] - w && v <= band[1] + w ? "warn" : "crit";
+}
+/* KPI inti menurut periode */
+function kpiFor(k) {
+  const d = execKpis.find(x => x.k === k);
+  if (isMonth()) return d;
+  const value = pv(k, d.value);
+  const delta = roundLike(rnd("d" + k) * Math.max(Math.abs(d.delta), Number.isInteger(d.value) ? 1 : 0.2), d.delta);
+  return { ...d, value, delta, status: statusFromBand(value, d.band) };
+}
+const inmFor = () => inm.map(i => { const value = pv("inm" + i.k, i.value, 0.03); return isMonth() ? i : { ...i, value, status: statusFromTarget(i.target, value) }; });
+const unitsFor = () => units.map(u => isMonth() ? u : { ...u, bor: pv("bor" + u.name, u.bor, 0.05), alos: pv("alos" + u.name, u.alos, 0.06), toi: pv("toi" + u.name, u.toi, 0.08), bto: pv("bto" + u.name, u.bto, 0.04) });
 
 const TABS = [
   { id:"ringkasan",  label:"Ringkasan",          icon:"home",      roles:["direksi","unit","mutu"] },
@@ -102,7 +166,7 @@ function initSelects() {
   $("#unitFilter").innerHTML = `<option value="all">Seluruh RS</option>` +
     units.map(u => `<option value="${esc(u.name)}">${esc(u.name)}</option>`).join("");
   $("#footerSources").textContent = "Sumber: " + RS_INFO.sources;
-  $("#periodLabel").textContent = RS_INFO.period;
+
 }
 
 function renderNav() {
@@ -180,6 +244,12 @@ function yRange(vals, pad = 0.14) {
 }
 
 function trendChart({ series, labels, band, target, unit = "", label, height = 240 }) {
+  if (!isMonth()) {
+    const key = label || series.map(s => s.name).join("|");
+    const res = series.map(s => pseries(key + s.name, s.data, labels));
+    labels = res[0].labels;
+    series = series.map((s, i) => ({ ...s, data: res[i].data }));
+  }
   const vals = series.flatMap(s => s.data).concat(band || [], target != null ? [target] : []);
   const r = yRange(vals);
   const dec = r.max - r.min < 6 ? 1 : 0;
@@ -284,8 +354,8 @@ function card({ title, sub = "", body, foot = "", action = "", cls = "" }) {
 }
 function sectionHead(title, meta, right = "") {
   return `<div class="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
-    <div class="min-w-0"><h2 class="text-xl font-semibold tracking-tight">${title}</h2><p class="text-sm text-muted-foreground">${meta}</p></div>
-    ${right ? `<span class="badge" data-variant="outline">${esc(right)}</span>` : ""}
+    <div class="min-w-0"><h2 class="text-xl font-semibold tracking-tight">${title}</h2><p class="text-sm text-muted-foreground">${meta}${isMonth() ? "" : " · angka periode ini disimulasikan dari data bulanan (mock)"}</p></div>
+    <span class="flex flex-wrap gap-1.5"><span class="badge" data-variant="secondary">${esc(P().label)} · ${esc(P().range)}</span>${right ? `<span class="badge" data-variant="outline">${esc(right)}</span>` : ""}</span>
   </div>`;
 }
 function table(head, rows, empty = "Tidak ada data.") {
@@ -299,8 +369,8 @@ const legend = items => `<div class="flex flex-wrap gap-x-4 gap-y-2 text-sm text
 const grid = (cls, inner) => `<div class="grid grid-cols-1 gap-6 ${cls}">${inner}</div>`;
 
 function metricTile(k) {
-  const base = execKpis.find(x => x.k === k);
-  const unit = state.unit === "all" ? null : units.find(x => x.name === state.unit);
+  const base = kpiFor(k);
+  const unit = state.unit === "all" ? null : unitsFor().find(x => x.name === state.unit);
   const scoped = unit && ["BOR", "ALOS", "TOI", "BTO"].includes(k);
   const d = scoped
     ? { ...base, value: unit[k.toLowerCase()], status: unit.status,
@@ -308,7 +378,7 @@ function metricTile(k) {
     : base;
   const delta = scoped
     ? `<span>Unit · periode berjalan</span>`
-    : `<span class="${deltaGood(d) ? "text-foreground" : "text-destructive"} font-medium">${deltaText(d.delta)}</span><span>vs Okt</span>`;
+    : `<span class="${deltaGood(d) ? "text-foreground" : "text-destructive"} font-medium">${deltaText(d.delta)}</span><span>${P().vs}</span>`;
   return `<button type="button" class="card min-w-0 gap-3 py-4 text-left transition hover:-translate-y-0.5 hover:bg-muted/50 hover:shadow-md motion-reduce:transition-none motion-reduce:hover:translate-y-0 focus-visible:outline-2 focus-visible:outline-ring" data-k="${d.k}" aria-label="${esc(d.name)}: ${fmtAuto(d.value)} ${esc(d.unit)}. Klik untuk definisi.">
     <header class="flex items-start justify-between gap-2 px-4">
       <span class="text-sm font-medium leading-snug">${d.k} · ${esc(d.name)}</span>${badge(d.status)}
@@ -316,7 +386,7 @@ function metricTile(k) {
     <section class="flex flex-col gap-1 px-4">
       <strong class="text-3xl font-semibold tracking-tight tabular-nums">${fmtAuto(d.value)}<span class="ml-1 text-sm font-normal text-muted-foreground">${esc(d.unit)}</span></strong>
       <span class="text-sm text-muted-foreground">Target ${esc(d.target)} · ${scoped ? esc(unit.name) : "RS-level"}</span>
-      ${scoped ? "" : sparkline(d.series, d.band)}
+      ${scoped ? "" : sparkline(pseries(d.k, d.series, d.labels).data, d.band)}
     </section>
     <footer class="flex-col items-start gap-1 px-4 text-sm text-muted-foreground">
       <span class="flex w-full justify-between gap-2">${delta}</span>
@@ -402,14 +472,14 @@ function statusTable(rows, { nameHead = "Indikator", extra } = {}) {
 /* ================= halaman ================= */
 function renderRingkasan() {
   return `
-  ${sectionHead("Enam indikator inti", `${RS_INFO.period} · dibandingkan target`, scopeText())}
+  ${sectionHead("Enam indikator inti", `${P().range} · dibandingkan target`, scopeText())}
   ${grid("sm:grid-cols-2 2xl:grid-cols-3", execKpis.map(d => metricTile(d.k)).join(""))}
   ${grid("lg:grid-cols-5", `
     <div class="min-w-0 lg:col-span-3">${card({ title: "Papan prioritas", sub: `${alerts.filter(a => a.sev === "crit").length} kritis · ${alerts.length} item`,
       body: alertItems(), foot: "Setiap item menautkan data sumber dan pemilik tindakan." })}</div>
     <div class="flex min-w-0 flex-col gap-6 lg:col-span-2">${capacityCard()}${domainRiskCard()}</div>`)}
   ${grid("2xl:grid-cols-2", `
-    ${card({ title: "Tren okupansi 14 hari", sub: "BOR % · area biru muda = rentang target 60–85%",
+    ${card({ title: "Tren okupansi", sub: `BOR % · ${gran("14 hari terakhir")} · area biru = target 60–85%`,
       body: trendChart({ series: [{ name: "BOR harian", data: capacity.occupancySeries }], labels: capacity.occupancyLabels, band: [60, 85], unit: "%" }) })}
     ${card({ title: "Pasien prioritas", sub: `${priorityPatients.length} tertinggi risiko`, body: priorityTable(priorityPatients),
       foot: "Data anonim. Detail per pasien hanya lewat RBAC." })}`)}`;
@@ -420,13 +490,13 @@ function heatTable() {
   return table(
     [{ t:"Unit" }, ...safetyIndicators.map(i => ({ t:`${esc(i.name)}<div class="text-xs font-normal text-muted-foreground">${esc(i.target)}</div>` }))],
     rows.map(r => ({ cells: [`<span class="font-medium">${esc(r.unit)}</span>`, ...safetyIndicators.map(i => {
-      const v = r[i.key], st = cellStatus(i, v);
+      const v = pv("sm" + r.unit + i.key, r[i.key], 0.03), st = cellStatus(i, v);
       return `<span class="badge tabular-nums ${STATUS[st].cls || ""}" data-variant="${STATUS[st].variant}" title="${esc(i.name)} ${fmt(v, 1)}${i.unit} · target ${esc(i.target)} · ${statusLabel(st)}">${icon(STATUS[st].icon)}${fmtAuto(v)}</span>`;
     })] })));
 }
 
 function renderMutu() {
-  const inmRows = inm.map(i => ({ n: i.k, t: i.target, v: fmtAuto(i.value) + (String(i.target).includes("%") ? "%" : ""), st: i.status }));
+  const inmRows = inmFor().map(i => ({ n: i.k, t: i.target, v: fmtAuto(i.value) + (String(i.target).includes("%") ? "%" : ""), st: i.status }));
   return `
   ${sectionHead("Mutu & keselamatan", "13 INM · matriks unit × indikator", scopeText())}
   ${card({ title: "Matriks kepatuhan per unit", sub: state.unit === "all" ? "7 unit · geser tabel ke samping di layar kecil" : esc(state.unit),
@@ -467,7 +537,7 @@ function boxplot() {
 }
 
 function funnelChart() {
-  const s = mortalityFunnel.stages;
+  const s = mortalityFunnel.stages.reduce((acc, x, i) => { const n = Math.min(pc(x.n), i ? acc[i - 1].n : Infinity); acc.push({ ...x, n }); return acc; }, []);
   return chart(`Funnel audit kematian: dari ${s[0].n} pasien keluar sampai ${s[s.length - 1].n} tindak lanjut`, h => merge(baseOpts("bar", h), {
     series: [{ name: "Jumlah", data: s.map(x => x.n) }],
     colors: [C.main()],
@@ -482,15 +552,16 @@ function funnelChart() {
 }
 
 function renderPengalaman() {
-  const e = experience;
+  const e = { ...experience, satisfaction: pv("sat", experience.satisfaction, 0.02), complaints: pc(experience.complaints), complaintsTarget: pc(experience.complaintsTarget),
+    pareto: experience.pareto.map(x => ({ ...x, n: pc(x.n) })), dama: pv("dama", experience.dama, 0.15), response48h: pv("resp", experience.response48h, 0.03) };
   return `
   ${sectionHead("Pengalaman pasien", "kepuasan · komplain · DAMA", scopeText())}
   ${grid("lg:grid-cols-2", `
     ${card({ title: "Indeks kepuasan pasien", sub: "survei pasca rawat",
       body: `${gauge({ value: e.satisfaction, target: e.satisfactionTarget, unit: "/100", label: "Kepuasan pasien" })}
-        <p class="text-sm text-muted-foreground">Di atas target ${e.satisfactionTarget}. Komplain ${e.complaints} bulan ini (target ≤${e.complaintsTarget}); ${e.response48h}% ditutup dalam 48 jam.</p>`,
+        <p class="text-sm text-muted-foreground">Di atas target ${e.satisfactionTarget}. Komplain ${e.complaints} ${P().label.toLowerCase()} (target ≤${e.complaintsTarget}); ${e.response48h}% ditutup dalam 48 jam.</p>`,
       foot: "Sumber: survei pasca rawat · 412 respons" })}
-    ${card({ title: "Tren kepuasan", sub: "7 periode", body: trendChart({ series: [{ name: "Indeks", data: e.satisfactionSeries }], labels: ["Mei","Jun","Jul","Agu","Sep","Okt","Nov"], target: e.satisfactionTarget, height: 260 }) })}`)}
+    ${card({ title: "Tren kepuasan", sub: gran("7 bulan terakhir"), body: trendChart({ series: [{ name: "Indeks", data: e.satisfactionSeries }], labels: ["Mei","Jun","Jul","Agu","Sep","Okt","Nov"], target: e.satisfactionTarget, height: 260 }) })}`)}
   ${grid("lg:grid-cols-2", `
     ${card({ title: "Pareto keluhan", sub: `${e.complaints} komplain`,
       body: hBars({ rows: e.pareto.map(p => ({ label: p.label, v: p.n })), unit: "×", label: "Pareto keluhan", highlight: [0] }),
@@ -535,7 +606,7 @@ function scatterBj() {
   const groups = { ok: "Dalam zona", warn: "Perlu pantau", crit: "Keluar zona" };
   const short = n => n.replace("Rawat Inap ", "RI ").replace(" / Paviliun", "");
   return chart("Sebaran BOR dan ALOS per unit; zona efisiensi BOR 60–85% dan ALOS 6–9 hari", h => merge(baseOpts("scatter", h), {
-    series: Object.entries(groups).map(([st, name]) => ({ name, data: units.filter(u => u.status === st).map(u => ({ x: u.bor, y: u.alos, name: short(u.name) })) })),
+    series: Object.entries(groups).map(([st, name]) => ({ name, data: unitsFor().filter(u => u.status === st).map(u => ({ x: u.bor, y: u.alos, name: short(u.name) })) })),
     colors: [C.ok(), C.warn(), C.crit()],
     markers: { size: 8, strokeWidth: 2, strokeColors: col("--card") },
     dataLabels: { enabled: true, offsetY: -10, formatter: (v, o) => o.w.config.series[o.seriesIndex].data[o.dataPointIndex].name,
@@ -554,7 +625,8 @@ function scatterBj() {
 }
 
 function unitTable() {
-  const rows = state.unit === "all" ? units : units.filter(u => u.name === state.unit);
+  const U = unitsFor();
+  const rows = state.unit === "all" ? U : U.filter(u => u.name === state.unit);
   return table([{ t:"Unit" }, { t:"TT", num:true }, { t:"BOR", num:true }, { t:"ALOS", num:true }, { t:"TOI", num:true }, { t:"BTO", num:true }, { t:"Status" }],
     rows.map(u => ({ attrs: state.unit === u.name ? ' data-state="selected"' : "", cells: [
       `<button type="button" class="btn h-auto px-0" data-variant="link" data-unit="${esc(u.name)}">${esc(u.name)}</button>`,
@@ -591,7 +663,7 @@ function renderOperasional() {
   ${card({ title: "Bed board okupansi harian", sub: "4 jendela jam · hari ini · merah = ≥90%", body: bedBoard(),
     foot: "Hold IGD menunda pindahan; bed bersih menunggu pembersihan akhir sebelum diisi." })}
   ${grid("2xl:grid-cols-2", `
-    ${card({ title: "Tren okupansi 14 hari", sub: "BOR %", body: trendChart({ series: [{ name: "BOR harian", data: capacity.occupancySeries }], labels: capacity.occupancyLabels, band: [60, 85], unit: "%" }) })}
+    ${card({ title: "Tren okupansi", sub: `BOR % · ${gran("14 hari terakhir")}`, body: trendChart({ series: [{ name: "BOR harian", data: capacity.occupancySeries }], labels: capacity.occupancyLabels, band: [60, 85], unit: "%" }) })}
     ${card({ title: "Pasien prioritas", sub: "drill-down unit", body: priorityTable(priorityPatients.filter(p => state.unit === "all" || p.unit === state.unit).slice(0, 5)),
       foot: "Daftar penuh tersedia untuk kepala unit sesuai RBAC." })}`)}`;
 }
@@ -613,9 +685,14 @@ function waterfall(components, total, target) {
 }
 
 function renderKeuangan() {
-  const f = finance;
+  const comps = finance.revenueComponents.map(c => ({ ...c, v: pc(c.v, 2) }));
+  const exact = (v, dec = 1) => (isMonth() ? v : Math.round(v * P().factor * 10 ** dec) / 10 ** dec);
+  const f = { ...finance, revenueComponents: comps, revenue: Math.round(comps.reduce((a, c) => a + c.v, 0) * 10) / 10, revenueTarget: exact(finance.revenueTarget),
+    pendingClaims: pc(finance.pendingClaims, 2), arDays: pv("ar", finance.arDays, 0.05), denialRate: pv("den", finance.denialRate, 0.08), collectionRate: pv("col", finance.collectionRate, 0.01),
+    denialPareto: finance.denialPareto.map(d => ({ ...d, n: pc(d.n) })) };
+  const denialTotal = f.denialPareto.reduce((a, d) => a + d.n, 0);
   return `
-  ${sectionHead("Keuangan & siklus klaim", `${RS_INFO.period} · miliar rupiah`, scopeText())}
+  ${sectionHead("Keuangan & siklus klaim", `${P().range} · miliar rupiah`, scopeText())}
   ${grid("sm:grid-cols-2 2xl:grid-cols-4", `
     ${simpleMetric({ label:"Pendapatan", value:fmt(f.revenue, 1), unit:"M", target:fmt(f.revenueTarget, 1) + " M", status:"warn", note:`Tercapai ${fmt(f.revenue / f.revenueTarget * 100, 1)}% target.` })}
     ${simpleMetric({ label:"AR days", value:fmt(f.arDays), unit:"hari", target:"≤" + f.arTarget, status:"warn", note:"Piutang 3,9 M; 12% berumur >90 hari." })}
@@ -628,14 +705,14 @@ function renderKeuangan() {
       body: hBars({ rows: f.aging.map(a => ({ label: a.bucket, v: a.v })), unit: " M", dec: 2, label: "Umur piutang", highlight: f.aging.map((_, i) => i).filter(i => i >= 2), highlightColor: "deep" }),
       foot: "Prioritas: rekonsiliasi klaim BPJS periode Sep–Okt." })}</div>`)}
   ${grid("2xl:grid-cols-2", `
-    ${card({ title: "Tren pendapatan vs target", sub: `miliar rupiah · ${f.trendLabels.length} bulan`,
-      body: trendChart({ series: [{ name: "Realisasi", data: f.revenueSeries }, { name: "Target bulanan", data: f.revenueTargetSeries }], labels: f.trendLabels, unit: " M" }),
+    ${card({ title: "Tren pendapatan vs target", sub: `miliar rupiah · ${gran(f.trendLabels.length + " bulan")}`,
+      body: trendChart({ series: [{ name: "Realisasi", data: f.revenueSeries.map(v => v * P().perPoint) }, { name: state.period === "today" ? "Target per 2 jam" : state.period === "week" ? "Target harian" : "Target bulanan", data: f.revenueTargetSeries.map(v => v * P().perPoint) }], labels: f.trendLabels, unit: " M" }),
       foot: `Selisih melebar sejak Agustus (−1,6 M di November); klaim tertahan ${fmt(f.pendingClaims, 2)} M menutup sebagian besar gap.` })}
     ${card({ title: "Tren AR days", sub: `hari · target ≤${f.arTarget}`,
       body: trendChart({ series: [{ name: "AR days", data: f.arSeries }], labels: f.trendLabels, target: f.arTarget, unit: " hari" }),
       foot: "Naik dari 30 hari (Jun) ke 38 hari (Nov) seiring denial INA-CBG; turunkan lewat rekonsiliasi klaim sebelum 5 Des." })}`)}
   ${grid("2xl:grid-cols-2", `
-    ${card({ title: "Penyebab denial klaim", sub: "84 klaim", body: hBars({ rows: f.denialPareto.map(d => ({ label: d.label, v: d.n })), unit: "×", label: "Penyebab denial klaim", highlight: [0] }) })}
+    ${card({ title: "Penyebab denial klaim", sub: `${denialTotal} klaim`, body: hBars({ rows: f.denialPareto.map(d => ({ label: d.label, v: d.n })), unit: "×", label: "Penyebab denial klaim", highlight: [0] }) })}
     ${card({ title: "Tindak lanjut arus kas", sub: "3 langkah", body: itemList([
       { title: "Rekonsiliasi 34 klaim kode INA-CBG", desc: "target selesai 5 Des", badge: badge("crit", "PRIORITAS") },
       { title: "Lengkapi 22 dokumen klaim tertahan", desc: "verifikasi berkas", badge: badge("warn", "PANTAU") },
@@ -670,8 +747,8 @@ function renderKepatuhan() {
   return `
   ${sectionHead("Kepatuhan regulasi", "13 INM · 6 indikator SIRS · tenggat", compliance.akreditasi)}
   ${grid("2xl:grid-cols-5", `
-    <div class="min-w-0 2xl:col-span-3">${card({ title: "Scorecard 13 INM", sub: `${inm.filter(i => i.status === "ok").length}/${inm.length} terpenuhi`,
-      body: statusTable(inm.map(i => ({ n: i.k, t: i.target, v: fmtAuto(i.value), st: i.status }))),
+    <div class="min-w-0 2xl:col-span-3">${card({ title: "Scorecard 13 INM", sub: `${inmFor().filter(i => i.status === "ok").length}/${inm.length} terpenuhi`,
+      body: statusTable(inmFor().map(i => ({ n: i.k, t: i.target, v: fmtAuto(i.value), st: i.status }))),
       foot: "Dasar: Permenkes 30/2022. Pelaporan melalui SIMAR." })}</div>
     <div class="flex min-w-0 flex-col gap-6 2xl:col-span-2">
       ${card({ title: "Indikator SIRS", sub: "RL 1.2 & 3.1", body: table([{ t:"Indikator" }, { t:"Nilai", num:true }, { t:"Target", num:true }, { t:"Status" }],
@@ -757,7 +834,7 @@ function breadcrumb() {
 function casePanel() {
   const p = priorityPatients.find(x => x.id === state.caseId);
   if (!p) return "";
-  const u = units.find(x => x.name === p.unit);
+  const u = unitsFor().find(x => x.name === p.unit);
   const row = (t, d) => `<div class="flex flex-col gap-1"><dt class="text-sm text-muted-foreground">${t}</dt><dd class="text-sm font-medium">${d}</dd></div>`;
   return card({ title: `Detail kasus ${esc(p.id)}`, sub: `akses RBAC · ${esc(p.unit)}`, action: badge(p.risk, riskLabel(p.risk)),
     body: `<dl class="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-3">
@@ -849,6 +926,8 @@ function renderNow() {
   const tab = TABS.find(t => t.id === state.tab);
   $("#pageTitle").textContent = tab.label;
   $("#scopeChip").textContent = scopeText();
+  $("#periodLabel").textContent = P().range;
+  $$("#periodGroup [data-period]").forEach(b => { const on = b.dataset.period === state.period; b.dataset.variant = on ? "primary" : "outline"; b.setAttribute("aria-pressed", String(on)); });
   document.title = `${tab.label} — RS Nusantara`;
   pendingCharts = [];
   $("#view").innerHTML = breadcrumb() + (state.caseId ? casePanel() : "") + VIEWS[state.tab]();
@@ -955,7 +1034,7 @@ function showDefinition(k) {
   const cur = currentValue(k);
   const row = (t, v) => `<div class="flex flex-col gap-1 border-b border-border pb-3 last:border-b-0 last:pb-0"><dt class="text-sm text-muted-foreground">${t}</dt><dd class="text-sm">${v}</dd></div>`;
   $("#defTitle").textContent = `${k} — ${d.name}`;
-  $("#defSub").textContent = `Periode ${RS_INFO.period} · cakupan ${scopeText()}`;
+  $("#defSub").textContent = `Periode ${P().range} · cakupan ${scopeText()}`;
   $("#defBody").innerHTML = `<dl class="flex flex-col gap-3">
     ${cur ? row("Nilai saat ini", `<span class="flex flex-wrap items-center gap-2"><b>${esc(cur.value)}</b>${badge(cur.status)}</span>`) : ""}
     ${row("Rumus", esc(d.formula))}
@@ -985,10 +1064,10 @@ function askAboutDefinition(k) {
 function exportCsv() {
   const rows = [["Bagian", "Indikator", "Nilai", "Satuan", "Target", "Status"]];
   const n = v => String(v).replace(".", ",");
-  execKpis.forEach(d => rows.push(["KPI inti", d.name, n(d.value), d.unit, d.target, statusLabel(d.status)]));
-  inm.forEach(i => rows.push(["INM", i.k, n(i.value), "%", i.target, statusLabel(i.status)]));
+  execKpis.map(x => kpiFor(x.k)).forEach(d => rows.push(["KPI inti", d.name, n(d.value), d.unit, d.target, statusLabel(d.status)]));
+  inmFor().forEach(i => rows.push(["INM", i.k, n(i.value), "%", i.target, statusLabel(i.status)]));
   sirs.forEach(s => rows.push(["SIRS", s.k, n(s.value), "", s.target, statusLabel(s.status)]));
-  units.forEach(u => {
+  unitsFor().forEach(u => {
     rows.push(["Unit " + u.name, "BOR", n(u.bor), "%", "60–85", statusLabel(u.status)]);
     rows.push(["Unit " + u.name, "ALOS", n(u.alos), "hari", "6–9", statusLabel(u.status)]);
     rows.push(["Unit " + u.name, "TOI", n(u.toi), "hari", "1–3", statusLabel(u.status)]);
@@ -998,13 +1077,13 @@ function exportCsv() {
   rows.push(["Keuangan", "AR days", n(finance.arDays), "hari", "≤" + finance.arTarget, "WATCH"]);
   rows.push(["Keuangan", "Denial klaim", n(finance.denialRate), "%", "≤" + n(finance.denialTarget), "WATCH"]);
   rows.push(["SDM", "Kepuasan staf", n(hr.satisfaction), "/100", "≥" + hr.satisfactionTarget, "WATCH"]);
-  rows.push(["Identitas", "Periode", RS_INFO.period, "", "", ""]);
+  rows.push(["Identitas", "Periode", `${P().label} (${P().range})`, "", "", ""]);
   rows.push(["Identitas", "Diekspor", new Date().toLocaleString("id-ID"), "", "", ""]);
 
   const csv = "﻿" + rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(";")).join("\r\n");
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-  a.download = "rs-nusantara-kpi-nov-2026.csv";
+  a.download = `rs-nusantara-kpi-${state.period}-2026.csv`;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 1500);
 
@@ -1071,6 +1150,13 @@ function init() {
     resetChat();
   });
   $("#unitFilter").addEventListener("change", e => setUnit(e.target.value));
+  $("#periodGroup").addEventListener("click", e => {
+    const b = e.target.closest("[data-period]");
+    if (!b || b.dataset.period === state.period) return;
+    state.period = b.dataset.period;
+    logAudit("Periode: " + P().label);
+    render();
+  });
   $("#exportBtn").addEventListener("click", exportCsv);
 
   document.addEventListener("click", e => {
