@@ -389,7 +389,7 @@ function metricTile(k) {
       <span class="text-sm font-medium leading-snug">${d.k} · ${esc(d.name)}</span>${badge(d.status)}
     </header>
     <section class="flex flex-col gap-1 px-4">
-      <strong class="text-4xl font-semibold tracking-tight tabular-nums">${fmtAuto(d.value)}<span class="ml-1 text-sm font-normal text-muted-foreground">${esc(d.unit)}</span></strong>
+      <strong class="text-5xl font-semibold tracking-tight tabular-nums ${d.status === "crit" ? "text-destructive" : ""}">${fmtAuto(d.value)}<span class="ml-1 text-sm font-normal text-muted-foreground">${esc(d.unit)}</span></strong>
       <span class="text-sm text-muted-foreground">Target ${esc(d.target)} · ${scoped ? esc(unit.name) : "RS-level"}</span>
       ${scoped ? "" : sparkline(pseries(d.k, d.series, d.labels).data, d.band)}
     </section>
@@ -450,13 +450,38 @@ function itemList(rows) {
       <aside>${r.badge}</aside>
     </${r.go || r.jump || r.k ? "button" : "div"}>`).join("")}</div>`;
 }
+function domainRows() {
+  return domainRisk.map(d => {
+    if (d.tab !== "pengalaman") return d;
+    const x = experienceFor();
+    return { ...d, status: worst(Object.values(x.st)), note: `Kepuasan ${fmt(x.satisfaction, 1)} · komplain ${x.complaints} · APS ${fmt(x.dama, 1)}%` };
+  });
+}
 function domainRiskCard() {
   const allowed = new Set(allowedTabs().map(t => t.id));
   return card({ title: "Status per domain", sub: "5 domain",
-    body: itemList(domainRisk.map(d => {
-      if (d.tab === "pengalaman") { const x = experienceFor(); d = { ...d, status: worst(Object.values(x.st)), note: `Kepuasan ${fmt(x.satisfaction, 1)} · komplain ${x.complaints} · APS ${fmt(x.dama, 1)}%` }; }
-      return { title: d.name, desc: d.note, badge: badge(d.status), go: allowed.has(d.tab) ? d.tab : "" };
-    })) });
+    body: itemList(domainRows().map(d => ({ title: d.name, desc: d.note, badge: badge(d.status), go: allowed.has(d.tab) ? d.tab : "" }))) });
+}
+/* Kepala halaman Ringkasan: satu kalimat keputusan, lalu strip status domain. */
+function commandHead() {
+  const allowed = new Set(allowedTabs().map(t => t.id));
+  const doms = domainRows().slice().sort((a, b) => SEV[a.status] - SEV[b.status]);
+  const nCrit = alerts.filter(a => a.sev === "crit").length, off = doms.filter(d => d.status === "crit");
+  const head = nCrit ? `${nCrit} hal perlu keputusan hari ini` : "Tidak ada hal kritis hari ini";
+  const cell = d => { const tag = allowed.has(d.tab) ? `button type="button" data-go="${d.tab}"` : "div";
+    return `<${tag} class="group flex min-w-0 flex-col items-start gap-1.5 border-b border-border py-3 text-left sm:pr-4 ${allowed.has(d.tab) ? "transition-colors hover:bg-muted/50" : ""}">
+      <span class="flex w-full flex-wrap items-center justify-between gap-2"><span class="text-sm font-medium group-hover:underline group-hover:underline-offset-4">${esc(d.name)}</span>${badge(d.status)}</span>
+      <span class="text-xs text-muted-foreground">${esc(d.note)}</span></${tag.split(" ")[0]}>`; };
+  return `<section class="flex flex-col gap-5" aria-labelledby="cmdTitle">
+    <div class="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+      <div class="flex min-w-0 max-w-3xl flex-col gap-2">
+        <h2 id="cmdTitle" class="text-3xl font-semibold leading-tight tracking-tight text-balance md:text-5xl md:leading-[1.05]">${head}</h2>
+        <p class="text-base text-pretty text-muted-foreground">${off.length} dari ${doms.length} domain di luar target${off.length ? ": " + off.map(d => esc(d.name)).join(", ") : ""}.${isMonth() ? "" : " Angka periode ini disimulasikan."}</p>
+      </div>
+      <span class="flex flex-wrap gap-1.5"><span class="badge" data-variant="secondary">${esc(P().label)} · ${esc(P().range)}</span><span class="badge" data-variant="outline">${esc(scopeText())}</span></span>
+    </div>
+    <div class="grid grid-cols-1 border-t border-border sm:grid-cols-2 sm:gap-x-4 2xl:grid-cols-5">${doms.map(cell).join("")}</div>
+  </section>`;
 }
 
 function priorityTable(rows) {
@@ -482,12 +507,13 @@ function statusTable(rows, { nameHead = "Indikator", extra } = {}) {
 /* ================= halaman ================= */
 function renderRingkasan() {
   return `
-  ${sectionHead("Enam indikator inti", `${P().range} · dibandingkan target`, scopeText())}
-  ${grid("sm:grid-cols-2 2xl:grid-cols-3", execKpis.map(d => metricTile(d.k)).join(""))}
+  ${commandHead()}
   ${grid("lg:grid-cols-5", `
-    <div class="min-w-0 lg:col-span-3">${card({ title: "Papan prioritas", sub: `${alerts.filter(a => a.sev === "crit").length} kritis · ${alerts.length} item`,
+    <div class="min-w-0 lg:col-span-3">${card({ title: "Papan prioritas", sub: `${alerts.filter(a => a.sev === "crit").length} kritis · ${alerts.length} item · pemilik dan tindakan`,
       body: alertItems(), foot: "Setiap item menautkan data sumber dan pemilik tindakan." })}</div>
-    <div class="flex min-w-0 flex-col gap-6 lg:col-span-2">${capacityCard()}${domainRiskCard()}</div>`)}
+    <div class="flex min-w-0 flex-col gap-6 lg:col-span-2">${capacityCard()}</div>`)}
+  ${sectionHead("Enam indikator inti", `${P().range} · diurutkan dari yang paling jauh dari target`, scopeText())}
+  ${grid("sm:grid-cols-2 2xl:grid-cols-3", execKpis.map(d => d.k).sort((a, b) => SEV[kpiFor(a).status] - SEV[kpiFor(b).status]).map(metricTile).join(""))}
   ${grid("2xl:grid-cols-2", `
     ${card({ title: "Tren okupansi", sub: `BOR % · ${gran("14 hari terakhir")} · area biru = target 60–85%`,
       body: trendChart({ series: [{ name: "BOR harian", data: capacity.occupancySeries }], labels: capacity.occupancyLabels, band: [60, 85], unit: "%" }) })}
