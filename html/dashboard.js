@@ -48,7 +48,8 @@ const TABS = [
   { id:"keuangan",   label:"Keuangan",           roles:["direksi"] },
   { id:"sdm",        label:"SDM",                roles:["direksi","unit"] },
   { id:"kepatuhan",  label:"Kepatuhan",          roles:["direksi","mutu"] },
-  { id:"strategi",   label:"Strategi (BSC)",     roles:["direksi"] }
+  { id:"strategi",   label:"Strategi (BSC)",     roles:["direksi"] },
+  { id:"docs",       label:"Panduan",        roles:["direksi","unit","mutu"] }
 ];
 
 function allowedTabs() { return TABS.filter(t => t.roles.includes(state.role)); }
@@ -1009,11 +1010,104 @@ function renderStrategi() {
   </section>`;
 }
 
+/* ================= panduan (dokumentasi untuk pembaca awam) ================= */
+function refNo(id) { return docsContent.references.findIndex(r => r.id === id) + 1; }
+function refChips(ids = []) {
+  const chips = ids.map(id => ({ id, n:refNo(id) })).filter(x => x.n > 0).sort((a, b) => a.n - b.n)
+    .map(x => `<button class="ref-chip" type="button" data-docjump="ref-${x.id}" title="${esc(docsContent.references[x.n - 1].cite)}">${x.n}</button>`).join("");
+  return chips ? `<span class="ref-chips" aria-label="Rujukan">${chips}</span>` : "";
+}
+
+function renderDocs() {
+  const d = docsContent;
+  const canOpen = id => allowedTabs().some(t => t.id === id);
+
+  return `
+  <section class="section">
+    <div class="section-head"><h2>Panduan dashboard</h2>
+      <span class="meta">apa yang ditampilkan, kenapa, dan datanya dari mana</span></div>
+
+    <div class="grid g23">
+      <div class="panel doc-prose">
+        <div class="panel-head"><span class="panel-title">${esc(d.intro.title)}</span></div>
+        ${d.intro.paragraphs.map(p => `<p>${esc(p)}</p>`).join("")}
+        <p class="doc-basis">Dasar pemilihan ${refChips(d.intro.refs)}</p>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">${esc(d.intro.colorsTitle)}</span>${refChips(d.intro.colorsRefs)}</div>
+        <div class="doc-colors">${d.intro.colors.map(c => `
+          <div class="doc-color"><span class="badge" data-variant="secondary" data-state="default" data-status="${c.status}">${esc(c.label)}</span>
+            <p>${esc(c.text)}</p></div>`).join("")}</div>
+      </div>
+    </div>
+
+    <div class="panel doc-prose section">
+      <div class="panel-head"><span class="panel-title">${esc(d.intro.tipsTitle)}</span></div>
+      <ul>${d.intro.tips.map(x => `<li>${esc(x)}</li>`).join("")}</ul>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><h2>Penjelasan per halaman</h2><span class="meta">klik judul untuk membuka</span></div>
+    <section class="accordion doc-accordion" data-state="closed">${d.sections.map((s, i) => `
+      <details${i === 0 ? " open" : ""}>
+        <summary>
+          <span class="doc-sum-title">${esc(s.title)}</span>
+          <span class="doc-sum-q">${esc(s.question)}</span>
+        </summary>
+        <section class="doc-body">
+          <p class="doc-why"><b>Kenapa halaman ini ada.</b> ${esc(s.why)} ${refChips(s.refs)}</p>
+          <ul class="doc-items">${s.items.map(it => `
+            <li><span class="doc-what">${esc(it.what)}</span><span class="doc-reason">${esc(it.why)}</span></li>`).join("")}</ul>
+          <div class="doc-source"><span class="doc-source-label">Datanya dari mana</span><span>${esc(s.source)}</span></div>
+          ${canOpen(s.tab) ? `<button class="btn" data-variant="outline" data-size="sm" type="button" data-go="${s.tab}">Buka halaman ${esc(s.title)} →</button>`
+            : `<span class="doc-muted">Halaman ini tersedia untuk peran lain.</span>`}
+        </section>
+      </details>`).join("")}
+    </section>
+  </section>
+
+  <section class="section">
+    <div class="grid g2">
+      <div class="panel doc-prose">
+        <div class="panel-head"><span class="panel-title">${esc(d.assistant.title)}</span></div>
+        <p>${esc(d.assistant.text)}</p>
+      </div>
+      <div class="panel doc-prose">
+        <div class="panel-head"><span class="panel-title">${esc(d.notShown.title)}</span>${refChips(d.notShown.refs)}</div>
+        <ul>${d.notShown.items.map(x => `<li>${esc(x)}</li>`).join("")}</ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="panel doc-prose">
+      <div class="panel-head"><span class="panel-title">${esc(d.mock.title)}</span></div>
+      <p>${esc(d.mock.text)}</p>
+      <div class="doc-colors doc-readiness">${d.mock.readiness.map(r => `
+        <div class="doc-color"><span class="badge" data-variant="secondary" data-state="default" data-status="${r.status}">${esc(r.label)}</span><p>${esc(r.text)}</p></div>`).join("")}</div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="panel doc-refs">
+      <div class="panel-head"><span class="panel-title">Daftar pustaka</span>
+        <span class="panel-sub">nomor di setiap penjelasan merujuk ke daftar ini</span></div>
+      <ol>${d.references.map(r => `
+        <li id="ref-${r.id}">
+          <p class="ref-cite">${esc(r.cite)} ${r.u ? `<a href="${esc(r.u)}" target="_blank" rel="noopener">${esc(r.u.replace(/^https?:\/\//, ""))}</a>` : ""}</p>
+          <p class="ref-use"><b>Dipakai untuk:</b> ${esc(r.usedFor)}</p>
+          <span class="badge" data-variant="secondary" data-state="default" data-status="${r.verified ? "ok" : "na"}">${r.verified ? "TERVERIFIKASI" : "BELUM DIVERIFIKASI ULANG"}</span>
+        </li>`).join("")}</ol>
+      <div class="panel-foot"><span>Rujukan bertanda "belum diverifikasi ulang" berasal dari riset awal dan masih perlu dicek ke naskah aslinya. Uraian lengkap: <code>docs/RESEARCH_DASHBOARD_RS.md</code> dan <code>docs/DASHBOARD_COMPONENT_MATRIX.md</code>.</span></div>
+    </div>
+  </section>`;
+}
 /* ================= views registry & render ================= */
 const VIEWS = {
   ringkasan: renderRingkasan, mutu: renderMutu, pengalaman: renderPengalaman,
   akses: renderAkses, operasional: renderOperasional, keuangan: renderKeuangan,
-  sdm: renderSDM, kepatuhan: renderKepatuhan, strategi: renderStrategi
+  sdm: renderSDM, kepatuhan: renderKepatuhan, strategi: renderStrategi, docs: renderDocs
 };
 
 function render() {
@@ -1228,6 +1322,14 @@ function init() {
   });
 
   document.addEventListener("click", e => {
+    const jump = e.target.closest("[data-docjump]");
+    if (jump) {
+      const el = document.getElementById(jump.dataset.docjump);
+      if (!el) return;
+      el.scrollIntoView({ behavior:"smooth", block:"center" });
+      el.classList.add("flash");
+      return setTimeout(() => el.classList.remove("flash"), 1600);
+    }
     const crumb = e.target.closest("[data-crumb]");
     if (crumb) {
       const c = crumb.dataset.crumb;
